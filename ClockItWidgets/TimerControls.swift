@@ -12,6 +12,7 @@ import WidgetKit
 
 /// Starts one of your saved timers from Control Center, the Lock Screen or the Action Button.
 /// Long-press it in Control Center to choose which.
+@available(iOS 18, *)
 struct StartTimerControl: ControlWidget {
 	var body: some ControlWidgetConfiguration {
 		AppIntentControlConfiguration(kind: SavedTimerShelf.startControlKind, intent: SelectSavedTimerIntent.self) { configuration in

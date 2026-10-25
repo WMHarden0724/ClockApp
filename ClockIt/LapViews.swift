@@ -16,7 +16,7 @@ enum LapColors {
 
 	static func color(for lap: TimeInterval, in stats: LapStats) -> Color {
 		guard stats.best != nil else { return Theme.accent }
-		return fast.mix(with: slow, by: stats.slowness(of: lap))
+		return fast.blend(with: slow, by: stats.slowness(of: lap))
 	}
 }
 

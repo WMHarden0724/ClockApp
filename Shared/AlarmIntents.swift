@@ -71,7 +71,7 @@ nonisolated enum AlarmShelf {
 		guard alarms != read(), let data = try? JSONEncoder().encode(alarms) else { return }
 		defaults.set(data, forKey: key)
 		#if os(iOS) && !WIDGET_EXTENSION
-		ControlCenter.shared.reloadControls(ofKind: toggleControlKind)
+		if #available(iOS 18, *) { ControlCenter.shared.reloadControls(ofKind: toggleControlKind) }
 		#endif
 	}
 }
@@ -219,7 +219,10 @@ struct AlarmStoppedIntent: LiveActivityIntent {
 struct WakeMissionIntent: LiveActivityIntent {
 	static let title: LocalizedStringResource = "Wake-Up Mission"
 	static let isDiscoverable = false
-	static let supportedModes: IntentModes = .foreground(.immediate)
+	@available(iOS 26, *)
+	static var supportedModes: IntentModes { .foreground(.immediate) }
+	/// Before iOS 26's `supportedModes`.
+	static let openAppWhenRun = true
 
 	@Parameter(title: "Alarm ID") var alarmID: String
 
@@ -252,6 +255,7 @@ struct SetAlarmEnabledIntent: SetValueIntent, LiveActivityIntent {
 
 
 /// Picks which alarm the Control Center toggle switches.
+@available(iOS 18, *)
 struct SelectAlarmIntent: ControlConfigurationIntent {
 	static let title: LocalizedStringResource = "Choose Alarm"
 

@@ -46,8 +46,8 @@ enum SkyPalette {
 		let span = upper.hour - lower.hour
 		let fraction = span > 0 ? (h - lower.hour) / span : 0
 		return Sky(
-			top: lower.top.mix(with: upper.top, by: fraction),
-			bottom: lower.bottom.mix(with: upper.bottom, by: fraction),
+			top: lower.top.blend(with: upper.top, by: fraction),
+			bottom: lower.bottom.blend(with: upper.bottom, by: fraction),
 			prefersLightText: h < 6 || h >= 19
 		)
 	}
@@ -55,7 +55,7 @@ enum SkyPalette {
 	/// Colors around a full day, for angular gradients that start at midnight.
 	static let dayRing: [Color] = stride(from: 0.0, through: 24.0, by: 1.0).map { hour in
 		let sky = sky(atHour: hour)
-		return sky.top.mix(with: sky.bottom, by: 0.5)
+		return sky.top.blend(with: sky.bottom, by: 0.5)
 	}
 
 	static func isDaytime(hour: Double) -> Bool {

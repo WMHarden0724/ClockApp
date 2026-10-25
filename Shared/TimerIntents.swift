@@ -67,7 +67,7 @@ nonisolated enum SavedTimerShelf {
 		guard timers != read(), let data = try? JSONEncoder().encode(timers) else { return }
 		defaults.set(data, forKey: key)
 		#if os(iOS) && !WIDGET_EXTENSION
-		ControlCenter.shared.reloadControls(ofKind: startControlKind)
+		if #available(iOS 18, *) { ControlCenter.shared.reloadControls(ofKind: startControlKind) }
 		#endif
 	}
 }
@@ -213,6 +213,7 @@ struct AddMinuteToTimerIntent: LiveActivityIntent {
 
 
 /// Picks which saved timer the Control Center button starts.
+@available(iOS 18, *)
 struct SelectSavedTimerIntent: ControlConfigurationIntent {
 	static let title: LocalizedStringResource = "Choose Timer"
 

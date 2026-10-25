@@ -199,6 +199,7 @@ private struct StopwatchButtons: View {
 // MARK: - Control Center
 
 /// Starts or stops the stopwatch from Control Center or the Lock Screen, lit while it's running.
+@available(iOS 18, *)
 struct StopwatchToggleControl: ControlWidget {
 	var body: some ControlWidgetConfiguration {
 		StaticControlConfiguration(kind: StopwatchControlState.controlKind, provider: Provider()) { isRunning in
@@ -223,6 +224,7 @@ struct StopwatchToggleControl: ControlWidget {
 
 
 /// Records a lap on the running stopwatch.
+@available(iOS 18, *)
 struct StopwatchLapControl: ControlWidget {
 	var body: some ControlWidgetConfiguration {
 		StaticControlConfiguration(kind: "com.southerncode.ClockIt.stopwatch.lap") {

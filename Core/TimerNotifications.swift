@@ -15,6 +15,7 @@ import UserNotifications
 ///
 /// The real end-of-timer alert is AlarmKit's, on the ringing device. The Mac can't ring, and
 /// the iPhone only hears about a Mac-started timer once its app runs, so the Mac posts its own.
+/// Before iOS 26 there's no AlarmKit, so the ringing iPhone posts the end too.
 enum TimerNotifications {
 	private static let prefix = "timer."
 	private static var scheduledIDs: [String] = []
@@ -32,7 +33,7 @@ enum TimerNotifications {
 		#else
 		// Only the device that rings adds cues, so an iPhone and iPad don't both chime.
 		let relevant = AlarmScheduler.isRingingDevice ? timers : []
-		let postsEnd = false
+		let postsEnd = !AlarmScheduler.usesAlarmKit
 		#endif
 
 		let now = Date()
@@ -86,14 +87,44 @@ enum TimerNotifications {
 
 
 /// Shows ClockIt's notifications even while it's open, so a workout on screen still chimes.
+/// Before iOS 26, alarms are notifications too, and tapping one does what AlarmKit's Stop would.
 final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate {
 	static let shared = NotificationPresenter()
+
+	enum AlarmTapAction: String {
+		case stopped, mission
+	}
+
+	private nonisolated static let alarmIDKey = "alarmID"
+	private nonisolated static let actionKey = "alarmAction"
+
+	static func userInfo(alarmID: UUID, action: AlarmTapAction) -> [String: String] {
+		[alarmIDKey: alarmID.uuidString, actionKey: action.rawValue]
+	}
 
 	nonisolated func userNotificationCenter(
 		_ center: UNUserNotificationCenter,
 		willPresent notification: UNNotification
 	) async -> UNNotificationPresentationOptions {
 		[.banner, .list, .sound]
+	}
+
+	nonisolated func userNotificationCenter(
+		_ center: UNUserNotificationCenter,
+		didReceive response: UNNotificationResponse
+	) async {
+		let info = response.notification.request.content.userInfo
+		guard let idString = info[Self.alarmIDKey] as? String, let id = UUID(uuidString: idString),
+			  let rawAction = info[Self.actionKey] as? String else { return }
+		#if os(iOS)
+		await MainActor.run {
+			switch AlarmTapAction(rawValue: rawAction) {
+			case .stopped: _ = ClockStore.shared.perform(.stopped(id: id))
+			case .mission: _ = ClockStore.shared.perform(.mission(id: id))
+			case nil: break
+			}
+		}
+		#endif
 	}
 }
 #endif

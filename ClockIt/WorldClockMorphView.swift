@@ -59,15 +59,7 @@ struct WorldClockMorphView: View {
 			start: overflow,
 			end: overflow + Self.morphDistance
 		))
-		.onScrollGeometryChange(for: ScrollMetrics.self) { geometry in
-			ScrollMetrics(
-				offset: geometry.contentOffset.y + geometry.contentInsets.top,
-				insets: geometry.contentInsets,
-				size: geometry.containerSize
-			)
-		} action: { _, metrics in
-			scroll = metrics
-		}
+		.trackingScrollMetrics($scroll)
 	}
 
 	// MARK: - Morph
@@ -243,6 +235,27 @@ private extension CGRect {
 			width: width + (other.width - width) * t,
 			height: height + (other.height - height) * t
 		)
+	}
+}
+
+
+private extension View {
+	/// Scroll geometry needs macOS 15; on macOS 14 the cards stay a plain list and never morph.
+	@ViewBuilder
+	func trackingScrollMetrics(_ scroll: Binding<ScrollMetrics>) -> some View {
+		if #available(macOS 15, *) {
+			onScrollGeometryChange(for: ScrollMetrics.self) { geometry in
+				ScrollMetrics(
+					offset: geometry.contentOffset.y + geometry.contentInsets.top,
+					insets: geometry.contentInsets,
+					size: geometry.containerSize
+				)
+			} action: { _, metrics in
+				scroll.wrappedValue = metrics
+			}
+		} else {
+			self
+		}
 	}
 }
 

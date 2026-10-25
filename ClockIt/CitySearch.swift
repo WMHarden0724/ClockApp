@@ -35,7 +35,9 @@ final class CitySearch: NSObject, MKLocalSearchCompleterDelegate {
 	override init() {
 		super.init()
 		completer.resultTypes = .address
-		completer.addressFilter = MKAddressFilter(including: [.locality])
+		if #available(iOS 18, macOS 15, visionOS 2, *) {
+			completer.addressFilter = MKAddressFilter(including: [.locality])
+		}
 		completer.delegate = self
 	}
 

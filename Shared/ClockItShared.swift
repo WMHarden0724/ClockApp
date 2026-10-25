@@ -94,7 +94,7 @@ struct PauseAlarmIntent: LiveActivityIntent {
 	init(alarmID: UUID) { self.alarmID = alarmID.uuidString }
 
 	func perform() async throws -> some IntentResult {
-		if let id = UUID(uuidString: alarmID) { try AlarmManager.shared.pause(id: id) }
+		if #available(iOS 26, *), let id = UUID(uuidString: alarmID) { try AlarmManager.shared.pause(id: id) }
 		return .result()
 	}
 }
@@ -110,7 +110,7 @@ struct ResumeAlarmIntent: LiveActivityIntent {
 	init(alarmID: UUID) { self.alarmID = alarmID.uuidString }
 
 	func perform() async throws -> some IntentResult {
-		if let id = UUID(uuidString: alarmID) { try AlarmManager.shared.resume(id: id) }
+		if #available(iOS 26, *), let id = UUID(uuidString: alarmID) { try AlarmManager.shared.resume(id: id) }
 		return .result()
 	}
 }
@@ -126,7 +126,7 @@ struct CancelAlarmIntent: LiveActivityIntent {
 	init(alarmID: UUID) { self.alarmID = alarmID.uuidString }
 
 	func perform() async throws -> some IntentResult {
-		if let id = UUID(uuidString: alarmID) { try AlarmManager.shared.cancel(id: id) }
+		if #available(iOS 26, *), let id = UUID(uuidString: alarmID) { try AlarmManager.shared.cancel(id: id) }
 		return .result()
 	}
 }

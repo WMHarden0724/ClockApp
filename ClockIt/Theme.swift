@@ -27,13 +27,21 @@ struct AuroraBackground: View {
 	@Environment(\.accessibilityReduceMotion) private var reduceMotion
 
 	var body: some View {
-		TimelineView(.animation(minimumInterval: 1 / 15, paused: reduceMotion)) { context in
-			MeshGradient(
-				width: 3,
-				height: 3,
-				points: points(at: context.date.timeIntervalSinceReferenceDate),
-				colors: colorScheme == .dark ? Self.darkColors : Self.lightColors
-			)
+		let colors = colorScheme == .dark ? Self.darkColors : Self.lightColors
+		Group {
+			if #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) {
+				TimelineView(.animation(minimumInterval: 1 / 15, paused: reduceMotion)) { context in
+					MeshGradient(
+						width: 3,
+						height: 3,
+						points: points(at: context.date.timeIntervalSinceReferenceDate),
+						colors: colors
+					)
+				}
+			} else {
+				// No mesh gradients yet: a still diagonal wash through the same corners.
+				LinearGradient(colors: [colors[0], colors[4], colors[8]], startPoint: .topLeading, endPoint: .bottomTrailing)
+			}
 		}
 		.ignoresSafeArea()
 	}

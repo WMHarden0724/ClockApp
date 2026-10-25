@@ -100,7 +100,7 @@ struct TimerCard: View {
 			Image(systemName: isDone ? "bell.and.waves.left.and.right.fill" : timer.kind.symbol)
 				.font(.system(size: 20, weight: .semibold))
 				.foregroundStyle(color)
-				.symbolEffect(.wiggle, options: .repeat(.continuous), isActive: isDone)
+				.wiggleSymbol(isActive: isDone)
 				.frame(width: 52, height: 52)
 				.softGlass(.regular, in: .circle)
 		} else {

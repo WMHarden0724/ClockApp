@@ -80,9 +80,11 @@ final class TimerStore {
 		#if os(iOS)
 		if live {
 			StopwatchActivity.update(for: stopwatch)
-			updatesTask = Task { [weak self] in
-				for await alarms in AlarmManager.shared.alarmUpdates {
-					self?.reconcile(with: alarms)
+			if #available(iOS 26, *) {
+				updatesTask = Task { [weak self] in
+					for await alarms in AlarmManager.shared.alarmUpdates {
+						self?.reconcile(with: alarms)
+					}
 				}
 			}
 		}
@@ -373,6 +375,7 @@ final class TimerStore {
 
 	#if os(iOS)
 	/// Adopts changes made outside the app: Live Activity buttons, the alert's Stop/Repeat, or finished timers.
+	@available(iOS 26, *)
 	private func reconcile(with alarms: [Alarm]) {
 		// Only the ringing device's AlarmKit state is authoritative.
 		guard AlarmScheduler.isRingingDevice else { return }

@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+#if os(iOS)
+import UserNotifications
+#endif
 
 @main
 struct ClockItApp: App {
@@ -17,6 +20,10 @@ struct ClockItApp: App {
 	init() {
 		// The stores registered their sync channels while initializing above.
 		SyncHub.shared.start()
+		#if os(iOS)
+		// Set early so tapping an alarm notification (before iOS 26) reaches us on launch.
+		UNUserNotificationCenter.current().delegate = NotificationPresenter.shared
+		#endif
 	}
 
     var body: some Scene {
@@ -69,27 +76,7 @@ struct ContentView: View {
 	@Environment(ClockStore.self) private var clockStore
 
 	var body: some View {
-		TabView(selection: $selection) {
-			Tab("Alarms", systemImage: "alarm", value: .alarms) {
-				AlarmsView(isSelected: selection == .alarms)
-			}
-
-			Tab("World Clock", systemImage: "globe", value: .worldClock) {
-				WorldClockView()
-			}
-			
-			Tab("Stopwatch", systemImage: "stopwatch", value: .stopwatch) {
-				// Every tab stays loaded in the sidebar, so the stopwatch's single-key
-				// shortcuts would otherwise fire while you type in other tabs.
-				StopwatchView(isSelected: selection == .stopwatch)
-			}
-			
-			Tab("Timers", systemImage: "timer", value: .timers) {
-				TimersView(isSelected: selection == .timers)
-			}
-		}
-		// A sidebar on iPad, Mac and Vision Pro; tabs on iPhone.
-		.tabViewStyle(.sidebarAdaptable)
+		tabs
 		.fullScreenOrSheet(isPresented: $showingWelcome) {
 			WelcomeView()
 		}
@@ -98,6 +85,52 @@ struct ContentView: View {
 			WakeMissionView(mission: mission)
 		}
 		#endif
+	}
+
+	@ViewBuilder
+	private var tabs: some View {
+		if #available(iOS 18, macOS 15, visionOS 2, *) {
+			TabView(selection: $selection) {
+				Tab("Alarms", systemImage: "alarm", value: .alarms) {
+					AlarmsView(isSelected: selection == .alarms)
+				}
+
+				Tab("World Clock", systemImage: "globe", value: .worldClock) {
+					WorldClockView()
+				}
+
+				Tab("Stopwatch", systemImage: "stopwatch", value: .stopwatch) {
+					// Every tab stays loaded in the sidebar, so the stopwatch's single-key
+					// shortcuts would otherwise fire while you type in other tabs.
+					StopwatchView(isSelected: selection == .stopwatch)
+				}
+
+				Tab("Timers", systemImage: "timer", value: .timers) {
+					TimersView(isSelected: selection == .timers)
+				}
+			}
+			// A sidebar on iPad, Mac and Vision Pro; tabs on iPhone.
+			.tabViewStyle(.sidebarAdaptable)
+		} else {
+			// Plain tabs everywhere before the adaptable sidebar.
+			TabView(selection: $selection) {
+				AlarmsView(isSelected: selection == .alarms)
+					.tabItem { Label("Alarms", systemImage: "alarm") }
+					.tag(Section.alarms)
+
+				WorldClockView()
+					.tabItem { Label("World Clock", systemImage: "globe") }
+					.tag(Section.worldClock)
+
+				StopwatchView(isSelected: selection == .stopwatch)
+					.tabItem { Label("Stopwatch", systemImage: "stopwatch") }
+					.tag(Section.stopwatch)
+
+				TimersView(isSelected: selection == .timers)
+					.tabItem { Label("Timers", systemImage: "timer") }
+					.tag(Section.timers)
+			}
+		}
 	}
 }
 

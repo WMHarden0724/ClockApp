@@ -12,6 +12,7 @@ import WidgetKit
 
 /// Switches one alarm on or off from Control Center or the Lock Screen, lit while it's on.
 /// Long-press it in Control Center to choose which.
+@available(iOS 18, *)
 struct AlarmToggleControl: ControlWidget {
 	var body: some ControlWidgetConfiguration {
 		AppIntentControlConfiguration(kind: AlarmShelf.toggleControlKind, provider: Provider()) { state in

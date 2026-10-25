@@ -77,8 +77,8 @@ struct TimerCandle: View {
 
 	var body: some View {
 		let remaining = isDone ? 0 : min(max(remainingFraction, 0), 1)
-		let waxLight = color.mix(with: .white, by: 0.72)
-		let waxShade = color.mix(with: .white, by: 0.42)
+		let waxLight = color.blend(with: .white, by: 0.72)
+		let waxShade = color.blend(with: .white, by: 0.42)
 
 		Canvas { context, size in
 			let w = size.width, h = size.height
@@ -196,7 +196,7 @@ struct TimerBattery: View {
 				let levelRect = CGRect(x: inner.minX, y: inner.maxY - height, width: inner.width, height: height)
 				let levelPath = Path(roundedRect: levelRect, cornerRadius: corner * 0.45)
 				context.fill(levelPath, with: .linearGradient(
-					Gradient(colors: [fill.mix(with: .white, by: 0.25), fill]),
+					Gradient(colors: [fill.blend(with: .white, by: 0.25), fill]),
 					startPoint: CGPoint(x: levelRect.minX, y: 0),
 					endPoint: CGPoint(x: levelRect.maxX, y: 0)
 				))
@@ -237,9 +237,9 @@ struct TimerSunset: View {
 		let t = min(max(elapsed, 0), 1)
 		let hour = 12 + 9.5 * t
 		let sky = SkyPalette.sky(atHour: hour)
-		let sunColor = Color(red: 1.0, green: 0.86, blue: 0.42).mix(with: Color(red: 1.0, green: 0.48, blue: 0.32), by: t)
-		let hillNear = color.mix(with: .black, by: 0.25 + 0.4 * t)
-		let hillFar = color.mix(with: .black, by: 0.05 + 0.4 * t).opacity(0.75)
+		let sunColor = Color(red: 1.0, green: 0.86, blue: 0.42).blend(with: Color(red: 1.0, green: 0.48, blue: 0.32), by: t)
+		let hillNear = color.blend(with: .black, by: 0.25 + 0.4 * t)
+		let hillFar = color.blend(with: .black, by: 0.05 + 0.4 * t).opacity(0.75)
 
 		Canvas { context, size in
 			let w = size.width, h = size.height
@@ -332,7 +332,7 @@ struct TimerBloom: View {
 	var body: some View {
 		let growth = isDone ? 1 : min(max(elapsed, 0), 1)
 		let leaf = ClockItPalette.color(named: "mint")
-		let potColor = color.mix(with: .black, by: 0.15)
+		let potColor = color.blend(with: .black, by: 0.15)
 
 		Canvas { context, size in
 			let w = size.width, h = size.height
@@ -347,7 +347,7 @@ struct TimerBloom: View {
 			pot.addLine(to: CGPoint(x: w * 0.3, y: h))
 			pot.closeSubpath()
 			context.fill(pot, with: .color(potColor))
-			context.fill(Path(roundedRect: CGRect(x: w * 0.15, y: soil - h * 0.04, width: w * 0.7, height: h * 0.06), cornerRadius: h * 0.02), with: .color(potColor.mix(with: .white, by: 0.2)))
+			context.fill(Path(roundedRect: CGRect(x: w * 0.15, y: soil - h * 0.04, width: w * 0.7, height: h * 0.06), cornerRadius: h * 0.02), with: .color(potColor.blend(with: .white, by: 0.2)))
 
 			// Stem grows during the first 70%.
 			let stemProgress = min(1, growth / 0.7)
@@ -383,7 +383,7 @@ struct TimerBloom: View {
 					petalContext.fill(
 						Path(ellipseIn: CGRect(x: -petalWidth / 2, y: -petalHeight, width: petalWidth, height: petalHeight)),
 						with: .linearGradient(
-							Gradient(colors: [color.mix(with: .white, by: 0.35), color]),
+							Gradient(colors: [color.blend(with: .white, by: 0.35), color]),
 							startPoint: CGPoint(x: 0, y: -petalHeight),
 							endPoint: .zero
 						)

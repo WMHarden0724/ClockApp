@@ -303,7 +303,7 @@ struct TimerHourglass: View {
 	var isDone = false
 
 	var body: some View {
-		let sand = Color(red: 0.95, green: 0.80, blue: 0.55).mix(with: color, by: 0.35)
+		let sand = Color(red: 0.95, green: 0.80, blue: 0.55).blend(with: color, by: 0.35)
 		let remaining = isDone ? 0 : min(max(remainingFraction, 0), 1)
 
 		Canvas { context, size in
@@ -394,7 +394,7 @@ private struct TimerSymbol: View {
 		Image(systemName: isDone ? "bell.and.waves.left.and.right.fill" : symbol)
 			.font(.system(size: 18, weight: .semibold))
 			.foregroundStyle(color)
-			.symbolEffect(.wiggle, options: .repeat(.continuous), isActive: isDone)
+			.wiggleSymbol(isActive: isDone)
 	}
 }
 

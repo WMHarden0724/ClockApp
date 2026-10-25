@@ -15,17 +15,22 @@ import WidgetKit
 @main
 struct ClockItWidgetsBundle: WidgetBundle {
 	var body: some Widget {
-		AlarmLiveActivity()
 		StopwatchLiveActivity()
-		StopwatchToggleControl()
-		StopwatchLapControl()
-		StartTimerControl()
-		AlarmToggleControl()
+		if #available(iOS 26, *) {
+			AlarmLiveActivity()
+		}
+		if #available(iOS 18, *) {
+			StopwatchToggleControl()
+			StopwatchLapControl()
+			StartTimerControl()
+			AlarmToggleControl()
+		}
 	}
 }
 
 
 /// Lock Screen and Dynamic Island UI for running timers and snoozed alarms.
+@available(iOS 26, *)
 struct AlarmLiveActivity: Widget {
 	var body: some WidgetConfiguration {
 		ActivityConfiguration(for: AlarmAttributes<ClockItAlarmMetadata>.self) { context in
@@ -81,6 +86,7 @@ struct AlarmLiveActivity: Widget {
 }
 
 
+@available(iOS 26, *)
 extension AlarmAttributes where Metadata == ClockItAlarmMetadata {
 	var isTimer: Bool { metadata?.kind == .timer }
 
@@ -98,6 +104,7 @@ extension AlarmAttributes where Metadata == ClockItAlarmMetadata {
 }
 
 
+@available(iOS 26, *)
 private struct LockScreenView: View {
 	let attributes: AlarmAttributes<ClockItAlarmMetadata>
 	let state: AlarmPresentationState
@@ -130,6 +137,7 @@ private struct LockScreenView: View {
 
 
 /// Live countdown while running, frozen remaining time while paused.
+@available(iOS 26, *)
 private struct CountdownText: View {
 	let state: AlarmPresentationState
 
@@ -159,6 +167,7 @@ private struct CountdownText: View {
 }
 
 
+@available(iOS 26, *)
 private struct StatusText: View {
 	let attributes: AlarmAttributes<ClockItAlarmMetadata>
 	let state: AlarmPresentationState
@@ -180,6 +189,7 @@ private struct StatusText: View {
 
 
 /// A soft ring that drains over the whole timer, with the timer or snooze glyph in the middle.
+@available(iOS 26, *)
 private struct ProgressRing: View {
 	let attributes: AlarmAttributes<ClockItAlarmMetadata>
 	let state: AlarmPresentationState
@@ -215,6 +225,7 @@ private struct ProgressRing: View {
 
 
 /// +1 minute, pause / resume and cancel, for timers only. Snoozed alarms are managed from the alert itself.
+@available(iOS 26, *)
 private struct ControlButtons: View {
 	let attributes: AlarmAttributes<ClockItAlarmMetadata>
 	let state: AlarmPresentationState

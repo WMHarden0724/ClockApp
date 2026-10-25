@@ -29,6 +29,7 @@ struct SoftGlass {
 	}
 
 	#if !os(visionOS)
+	@available(iOS 26, macOS 26, *)
 	var glass: Glass {
 		var glass = Glass.regular
 		if let tint { glass = glass.tint(tint) }
@@ -40,13 +41,21 @@ struct SoftGlass {
 
 
 extension View {
+	@ViewBuilder
 	func softGlass(_ glass: SoftGlass = .regular, in shape: some InsettableShape) -> some View {
 		#if os(visionOS)
 		self
 			.background(glass.tint ?? .clear, in: shape)
 			.glassBackgroundEffect(in: shape)
 		#else
-		glassEffect(glass.glass, in: shape)
+		if #available(iOS 26, macOS 26, *) {
+			glassEffect(glass.glass, in: shape)
+		} else {
+			// Frosted material before Liquid Glass.
+			self
+				.background((glass.tint ?? .clear).opacity(0.35), in: shape)
+				.background(.ultraThinMaterial, in: shape)
+		}
 		#endif
 	}
 
@@ -55,7 +64,11 @@ extension View {
 		#if os(visionOS)
 		buttonStyle(.bordered)
 		#else
-		buttonStyle(.glass)
+		if #available(iOS 26, macOS 26, *) {
+			buttonStyle(.glass)
+		} else {
+			buttonStyle(.bordered)
+		}
 		#endif
 	}
 
@@ -64,11 +77,15 @@ extension View {
 		#if os(visionOS)
 		buttonStyle(.borderedProminent)
 		#else
-		buttonStyle(.glassProminent)
+		if #available(iOS 26, macOS 26, *) {
+			buttonStyle(.glassProminent)
+		} else {
+			buttonStyle(.borderedProminent)
+		}
 		#endif
 	}
 
-	/// Navigation subtitle where supported; a bottom ornament on Vision Pro.
+	/// Navigation subtitle where supported (iOS 26 on iPhone and iPad); a bottom ornament on Vision Pro.
 	@ViewBuilder
 	func navigationSubtitleIfAvailable(_ subtitle: Text) -> some View {
 		#if os(visionOS)
@@ -77,8 +94,14 @@ extension View {
 				subtitle.font(.headline)
 			}
 		}
-		#else
+		#elseif os(macOS)
 		navigationSubtitle(subtitle)
+		#else
+		if #available(iOS 26, *) {
+			navigationSubtitle(subtitle)
+		} else {
+			self
+		}
 		#endif
 	}
 
@@ -107,7 +130,11 @@ struct GlassGroup<Content: View>: View {
 		#if os(visionOS)
 		content
 		#else
-		GlassEffectContainer(spacing: spacing) { content }
+		if #available(iOS 26, macOS 26, *) {
+			GlassEffectContainer(spacing: spacing) { content }
+		} else {
+			content
+		}
 		#endif
 	}
 }

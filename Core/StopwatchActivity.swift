@@ -51,7 +51,7 @@ enum StopwatchActivity {
 	private static func updateControl(isRunning: Bool) {
 		guard StopwatchControlState.isRunning != isRunning else { return }
 		StopwatchControlState.isRunning = isRunning
-		ControlCenter.shared.reloadControls(ofKind: StopwatchControlState.controlKind)
+		if #available(iOS 18, *) { ControlCenter.shared.reloadControls(ofKind: StopwatchControlState.controlKind) }
 	}
 }
 #endif

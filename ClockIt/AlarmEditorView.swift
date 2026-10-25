@@ -422,6 +422,7 @@ private struct AlarmSkyBackground: View {
 /// One location fix, asking for permission the first time.
 enum OneShotLocation {
 	static func current() async -> CLLocation? {
+		guard #available(iOS 18, *) else { return await LegacyOneShotLocation().current() }
 		let session = CLServiceSession(authorization: .whenInUse)
 		defer { session.invalidate() }
 		do {
@@ -433,6 +434,47 @@ enum OneShotLocation {
 			return nil
 		}
 		return nil
+	}
+}
+
+
+/// iOS 17: no service sessions, so ask a location manager directly.
+@MainActor
+private final class LegacyOneShotLocation: NSObject, @preconcurrency CLLocationManagerDelegate {
+	private let manager = CLLocationManager()
+	private var continuation: CheckedContinuation<CLLocation?, Never>?
+
+	func current() async -> CLLocation? {
+		await withCheckedContinuation { continuation in
+			self.continuation = continuation
+			manager.delegate = self
+			switch manager.authorizationStatus {
+			case .notDetermined: manager.requestWhenInUseAuthorization()
+			case .authorizedWhenInUse, .authorizedAlways: manager.requestLocation()
+			default: finish(nil)
+			}
+		}
+	}
+
+	private func finish(_ location: CLLocation?) {
+		continuation?.resume(returning: location)
+		continuation = nil
+	}
+
+	func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+		switch manager.authorizationStatus {
+		case .notDetermined: break
+		case .authorizedWhenInUse, .authorizedAlways: manager.requestLocation()
+		default: finish(nil)
+		}
+	}
+
+	func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+		finish(locations.last)
+	}
+
+	func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {
+		finish(nil)
 	}
 }
 #endif
