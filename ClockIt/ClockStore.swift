@@ -70,6 +70,13 @@ final class ClockStore {
 		}
 	}
 
+	/// Reschedules every enabled alarm, e.g. after a setting that alarms carry with them changes.
+	func resyncAlarms() {
+		for alarm in alarms where alarm.isEnabled {
+			sync(alarm)
+		}
+	}
+
 	var nextAlarm: (alarm: AppAlarm, date: Date)? {
 		alarms
 			.filter(\.isEnabled)

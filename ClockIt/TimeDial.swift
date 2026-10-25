@@ -8,6 +8,7 @@
 import SwiftUI
 
 
+
 /// A 24-hour ring: midnight at the top, noon at the bottom. Drag the knob to set the time.
 struct TimeDial: View {
 	@Binding var hour: Int
@@ -22,14 +23,21 @@ struct TimeDial: View {
 
 	private var timeText: String {
 		let date = Calendar.current.date(from: DateComponents(hour: hour, minute: minute)) ?? Date()
-		return date.formatted(date: .omitted, time: .shortened)
+		return date.timeText
+	}
+
+	/// "12, 1, 2 … 11" twice around in 12-hour mode, "0 … 23" in 24-hour mode.
+	private func hourLabel(_ h: Int) -> String {
+		if AppSettings.shared.is24Hour { return "\(h)" }
+		return "\(h % 12 == 0 ? 12 : h % 12)"
 	}
 
 	private var partOfDay: String {
 		switch hour {
-		case 5..<12: return "Morning"
-		case 12..<17: return "Afternoon"
-		case 17..<21: return "Evening"
+		case 0...11: return "Morning"
+		case 12: return "Mid-Day"
+		case 13...17: return "Afternoon"
+		case 18...20: return "Evening"
 		default: return "Night"
 		}
 	}
@@ -56,17 +64,23 @@ struct TimeDial: View {
 						.rotationEffect(.degrees(Double(h) * 15))
 				}
 
-				ForEach(Array(["moon.stars.fill", "sunrise.fill", "sun.max.fill", "sunset.fill"].enumerated()), id: \.offset) { index, symbol in
-					Image(systemName: symbol)
-						.font(.footnote)
-						.foregroundStyle(.secondary)
-						.position(point(for: Double(index) / 4, radius: radius - ringWidth / 2 - 30, center: center))
+				// Hour numbers written on the sky ring, light on dark hours and dark on light ones.
+				ForEach(0..<24, id: \.self) { h in
+					Text(hourLabel(h))
+						.font(.system(size: 11, weight: .bold, design: .rounded))
+						.monospacedDigit()
+						.foregroundStyle(SkyPalette.sky(atHour: Double(h)).prefersLightText ? Color.white.opacity(0.9) : Color(red: 0.10, green: 0.13, blue: 0.27).opacity(0.75))
+						.position(point(for: Double(h) / 24, radius: radius, center: center))
+						.accessibilityHidden(true)
 				}
 
 				VStack(spacing: 2) {
 					Text(timeText)
-						.font(Theme.clockFont(52, weight: .thin))
+						.font(Theme.clockFont(side * 0.15, weight: .thin))
 						.monospacedDigit()
+						.lineLimit(1)
+						.minimumScaleFactor(0.6)
+						.frame(maxWidth: (radius - ringWidth / 2) * 1.7)
 						.contentTransition(.numericText())
 					Text(partOfDay)
 						.font(.subheadline.weight(.medium))

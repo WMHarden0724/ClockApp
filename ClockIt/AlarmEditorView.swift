@@ -79,7 +79,7 @@ struct AlarmEditorView: View {
 				.padding(16)
 			}
 			.scrollDismissesKeyboard(.interactively)
-			.background(AuroraBackground())
+			.background(AlarmSkyBackground(hour: alarmHour))
 			.navigationTitle(existing == nil ? "New Alarm" : "Edit Alarm")
 			.navigationBarTitleDisplayMode(.inline)
 			.toolbar {
@@ -94,6 +94,13 @@ struct AlarmEditorView: View {
 				}
 			}
 		}
+		// Glass and text flip to dark styling once the sky behind them goes dark.
+		.environment(\.colorScheme, SkyPalette.sky(atHour: alarmHour).prefersLightText ? .dark : .light)
+		.animation(.smooth(duration: 0.6), value: alarmHour)
+	}
+
+	private var alarmHour: Double {
+		Double(hour) + Double(minute) / 60
 	}
 
 	private var dialCard: some View {
@@ -190,4 +197,32 @@ struct AlarmEditorView: View {
 
 #Preview {
 	AlarmEditorView(alarm: nil) { _ in }
+}
+
+
+/// The sky at the alarm's time: dawn pastels, midday blue, dusk, or a starry night. Follows the dial as you drag.
+private struct AlarmSkyBackground: View {
+	let hour: Double
+	
+	var body: some View {
+		let sky = SkyPalette.sky(atHour: hour)
+		let isDay = SkyPalette.isDaytime(hour: hour)
+		let glow = isDay ? Color(red: 1.0, green: 0.86, blue: 0.55) : Color(red: 0.98, green: 0.96, blue: 0.88)
+		
+		ZStack {
+			LinearGradient(colors: [sky.top, sky.bottom], startPoint: .top, endPoint: .bottom)
+			
+			// Soft sun or moon glow in the upper corner.
+			RadialGradient(
+				colors: [glow.opacity(isDay ? 0.55 : 0.18), .clear],
+				center: UnitPoint(x: 0.85, y: 0.08),
+				startRadius: 0,
+				endRadius: 320
+			)
+			
+			StarField(seed: "alarm-sky", count: 90)
+				.opacity(sky.prefersLightText ? 1 : 0)
+		}
+		.ignoresSafeArea()
+	}
 }

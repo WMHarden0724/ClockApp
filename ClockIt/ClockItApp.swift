@@ -10,12 +10,14 @@ import SwiftUI
 @main
 struct ClockItApp: App {
 	@State private var store = ClockStore()
+	@State private var timerStore = TimerStore()
 	@Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
             ContentView()
 				.environment(store)
+				.environment(timerStore)
 				.tint(Theme.accent)
         }
 		.onChange(of: scenePhase) { _, phase in
@@ -37,6 +39,14 @@ struct ContentView: View {
 			Tab("World Clock", systemImage: "globe") {
 				WorldClockView()
 			}
+			
+			Tab("Stopwatch", systemImage: "stopwatch") {
+				StopwatchView()
+			}
+			
+			Tab("Timers", systemImage: "timer") {
+				TimersView()
+			}
 		}
 	}
 }
@@ -45,4 +55,5 @@ struct ContentView: View {
 #Preview {
 	ContentView()
 		.environment(ClockStore.preview)
+		.environment(TimerStore.preview)
 }

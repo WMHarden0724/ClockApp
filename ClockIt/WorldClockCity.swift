@@ -24,9 +24,7 @@ struct WorldClockCity: Identifiable, Codable, Hashable {
 	}
 
 	func timeText(at date: Date) -> String {
-		var style = Date.FormatStyle(date: .omitted, time: .shortened)
-		style.timeZone = timeZone
-		return date.formatted(style)
+		date.timeText(in: timeZone)
 	}
 
 	/// Fractional hour of the day in this city, 0..<24.

@@ -60,6 +60,7 @@ struct AlarmsView: View {
 			.animation(.smooth, value: store.alarms.map(\.id))
 			.navigationTitle("Alarms")
 			.localTimeSubtitle()
+			.settingsButton()
 			.toolbar {
 				ToolbarItem(placement: .topBarTrailing) {
 					Button {

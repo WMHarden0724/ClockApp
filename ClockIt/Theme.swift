@@ -10,7 +10,7 @@ import SwiftUI
 
 /// Shared look for the whole app: soft pastels, Liquid Glass cards, rounded numerals.
 enum Theme {
-	static let accent = Color(red: 0.55, green: 0.50, blue: 1.0)
+	static let accent = ClockItPalette.accent
 	static let cornerRadius: CGFloat = 28
 
 	static func clockFont(_ size: CGFloat, weight: Font.Weight = .light) -> Font {
@@ -102,9 +102,19 @@ private struct LocalTimeSubtitle: ViewModifier {
 enum LocalTime {
 	/// "Local · 9:41 PM", plus the shift when the user has scrubbed away from now.
 	static func label(for date: Date, offsetMinutes: Double = 0) -> String {
-		let time = date.formatted(date: .omitted, time: .shortened)
+		let time = date.timeText
 		guard offsetMinutes != 0 else { return "Local · \(time)" }
 		return "Local · \(time) (\(offsetText(minutes: offsetMinutes)))"
+	}
+
+	/// The user's city as named by their time zone, e.g. "New York" for America/New_York.
+	static var currentCity: String {
+		let identifier = TimeZone.current.identifier
+		let parts = identifier.split(separator: "/")
+		guard parts.count >= 2, let last = parts.last else {
+			return TimeZone.current.localizedName(for: .generic, locale: .current) ?? identifier
+		}
+		return String(last).replacing("_", with: " ")
 	}
 
 	static func offsetText(minutes: Double) -> String {

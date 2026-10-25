@@ -28,7 +28,9 @@ struct WorldClockView: View {
 				}
 				.listStyle(.plain)
 				.scrollContentBackground(.hidden)
-				.navigationSubtitle(Text(LocalTime.label(for: date, offsetMinutes: offsetMinutes)))
+				.navigationSubtitle(
+					Text("\(LocalTime.label(for: date, offsetMinutes: offsetMinutes)) · \(LocalTime.currentCity)")
+				)
 				.overlay {
 					if store.cities.isEmpty {
 						ContentUnavailableView(
@@ -48,6 +50,7 @@ struct WorldClockView: View {
 				}
 			}
 			.navigationTitle("World Clock")
+			.settingsButton()
 			.toolbar {
 				ToolbarItem(placement: .topBarTrailing) {
 					Button {

@@ -22,7 +22,7 @@ enum SkyPalette {
 		let bottom: Color
 	}
 
-	private static let night = (top: Color(red: 0.16, green: 0.17, blue: 0.38), bottom: Color(red: 0.29, green: 0.23, blue: 0.50))
+	private static let night = (top: Color(red: 0.01, green: 0.01, blue: 0.03), bottom: Color(red: 0.05, green: 0.05, blue: 0.10))
 
 	private static let stops: [Stop] = [
 		Stop(hour: 0, top: night.top, bottom: night.bottom),
@@ -32,7 +32,7 @@ enum SkyPalette {
 		Stop(hour: 12, top: Color(red: 0.47, green: 0.73, blue: 0.98), bottom: Color(red: 0.78, green: 0.90, blue: 1.00)),
 		Stop(hour: 16.5, top: Color(red: 0.52, green: 0.72, blue: 0.96), bottom: Color(red: 0.88, green: 0.88, blue: 0.98)),
 		Stop(hour: 18.5, top: Color(red: 0.56, green: 0.46, blue: 0.82), bottom: Color(red: 1.00, green: 0.68, blue: 0.64)),
-		Stop(hour: 20, top: Color(red: 0.25, green: 0.23, blue: 0.51), bottom: Color(red: 0.49, green: 0.33, blue: 0.59)),
+		Stop(hour: 20, top: Color(red: 0.12, green: 0.10, blue: 0.28), bottom: Color(red: 0.32, green: 0.21, blue: 0.42)),
 		Stop(hour: 21.5, top: night.top, bottom: night.bottom),
 		Stop(hour: 24, top: night.top, bottom: night.bottom)
 	]

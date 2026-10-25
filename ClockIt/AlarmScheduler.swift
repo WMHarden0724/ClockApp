@@ -9,9 +9,6 @@ import AlarmKit
 import SwiftUI
 
 
-nonisolated struct ClockItAlarmMetadata: AlarmMetadata {}
-
-
 /// Bridges `AppAlarm` to real system alarms via AlarmKit.
 enum AlarmScheduler {
 	private static var manager: AlarmManager { .shared }
@@ -43,6 +40,7 @@ enum AlarmScheduler {
 		)
 		let attributes = AlarmAttributes<ClockItAlarmMetadata>(
 			presentation: AlarmPresentation(alert: alert),
+			metadata: ClockItAlarmMetadata(kind: .alarm, label: alarm.displayLabel, uses24Hour: AppSettings.shared.uses24Hour),
 			tintColor: Theme.accent
 		)
 		let configuration = AlarmManager.AlarmConfiguration(
@@ -60,6 +58,55 @@ enum AlarmScheduler {
 
 	static func cancel(_ id: UUID) {
 		try? manager.cancel(id: id)
+	}
+
+	// MARK: Timers
+
+	/// Starts a countdown that rings like an alarm and shows a Live Activity. Returns false if not allowed.
+	static func startTimer(_ timer: AppTimer) async -> Bool {
+		guard await requestAuthorizationIfNeeded() else { return false }
+
+		let color = ClockItPalette.color(named: timer.colorName)
+		let presentation = AlarmPresentation(
+			alert: AlarmPresentation.Alert(
+				title: "\(timer.displayLabel)",
+				secondaryButton: AlarmButton(text: "Repeat", textColor: color, systemImageName: "repeat"),
+				secondaryButtonBehavior: .countdown
+			),
+			countdown: AlarmPresentation.Countdown(
+				title: "\(timer.displayLabel)",
+				pauseButton: AlarmButton(text: "Pause", textColor: color, systemImageName: "pause.fill")
+			),
+			paused: AlarmPresentation.Paused(
+				title: "Paused",
+				resumeButton: AlarmButton(text: "Resume", textColor: color, systemImageName: "play.fill")
+			)
+		)
+		let attributes = AlarmAttributes<ClockItAlarmMetadata>(
+			presentation: presentation,
+			metadata: ClockItAlarmMetadata(kind: .timer, label: timer.displayLabel, colorName: timer.colorName, symbolName: timer.kind.symbol, uses24Hour: AppSettings.shared.uses24Hour),
+			tintColor: color
+		)
+		let configuration = AlarmManager.AlarmConfiguration(
+			countdownDuration: Alarm.CountdownDuration(preAlert: timer.remaining, postAlert: timer.duration),
+			attributes: attributes
+		)
+
+		do {
+			_ = try await manager.schedule(id: timer.id, configuration: configuration)
+			return true
+		} catch {
+			print("Failed to start timer \(timer.id): \(error)")
+			return false
+		}
+	}
+
+	static func pause(_ id: UUID) {
+		try? manager.pause(id: id)
+	}
+
+	static func resume(_ id: UUID) {
+		try? manager.resume(id: id)
 	}
 
 	/// Ids AlarmKit currently has scheduled, or nil if we can't know (not authorized).

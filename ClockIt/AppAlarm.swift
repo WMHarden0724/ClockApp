@@ -35,7 +35,7 @@ extension AppAlarm {
 
 	var timeText: String {
 		let date = Calendar.current.date(from: DateComponents(hour: hour, minute: minute)) ?? Date()
-		return date.formatted(date: .omitted, time: .shortened)
+		return date.timeText
 	}
 
 	var scheduleText: String {
@@ -90,12 +90,12 @@ extension Date {
 	/// "Today, 7:00 AM", "Tomorrow, 7:00 AM", or "Friday, 7:00 AM".
 	var relativeDayAndTime: String {
 		let calendar = Calendar.current
-		let time = formatted(date: .omitted, time: .shortened)
+		let time = self.timeText
 		if calendar.isDateInToday(self) { return "Today, \(time)" }
 		if calendar.isDateInTomorrow(self) { return "Tomorrow, \(time)" }
 		if let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: Date()), to: self).day, days < 7 {
 			return "\(formatted(.dateTime.weekday(.wide))), \(time)"
 		}
-		return formatted(date: .abbreviated, time: .shortened)
+		return dateTimeText
 	}
 }
