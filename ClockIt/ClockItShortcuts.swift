@@ -8,10 +8,47 @@
 import AppIntents
 
 
-/// Siri phrases and Shortcuts actions for timers and the stopwatch. (The system allows ten.)
-/// "Start or Stop" is the one to put on the Action Button.
+/// Siri phrases for alarms, timers and the stopwatch. The system allows ten, so the rest
+/// (pause or cancel all timers, start / stop / reset the stopwatch, pause all alarms) are
+/// actions in the Shortcuts app without a phrase. "Start or Stop" suits the Action Button.
 struct ClockItShortcuts: AppShortcutsProvider {
 	static var appShortcuts: [AppShortcut] {
+		AppShortcut(
+			intent: SetAlarmIntent(),
+			phrases: [
+				"Set an alarm in \(.applicationName)",
+				"Wake me up with \(.applicationName)"
+			],
+			shortTitle: "Set Alarm",
+			systemImageName: "alarm"
+		)
+		AppShortcut(
+			intent: NextAlarmIntent(),
+			phrases: [
+				"When's my next \(.applicationName) alarm",
+				"What time is my \(.applicationName) alarm"
+			],
+			shortTitle: "Next Alarm",
+			systemImageName: "alarm.waves.left.and.right"
+		)
+		AppShortcut(
+			intent: TurnOffAlarmIntent(),
+			phrases: ["Turn off my \(\.$alarm) alarm in \(.applicationName)"],
+			shortTitle: "Turn Off Alarm",
+			systemImageName: "alarm"
+		)
+		AppShortcut(
+			intent: TurnOnAlarmIntent(),
+			phrases: ["Turn on my \(\.$alarm) alarm in \(.applicationName)"],
+			shortTitle: "Turn On Alarm",
+			systemImageName: "alarm.fill"
+		)
+		AppShortcut(
+			intent: SkipNextAlarmIntent(),
+			phrases: ["Skip my next \(\.$alarm) alarm in \(.applicationName)"],
+			shortTitle: "Skip Next Alarm",
+			systemImageName: "forward.end"
+		)
 		AppShortcut(
 			intent: StartSavedTimerIntent(),
 			phrases: [
@@ -40,18 +77,6 @@ struct ClockItShortcuts: AppShortcutsProvider {
 			systemImageName: "hourglass"
 		)
 		AppShortcut(
-			intent: PauseAllTimersIntent(),
-			phrases: ["Pause my \(.applicationName) timers"],
-			shortTitle: "Pause All Timers",
-			systemImageName: "pause.fill"
-		)
-		AppShortcut(
-			intent: CancelAllTimersIntent(),
-			phrases: ["Cancel my \(.applicationName) timers"],
-			shortTitle: "Cancel All Timers",
-			systemImageName: "xmark"
-		)
-		AppShortcut(
 			intent: ToggleStopwatchIntent(),
 			phrases: [
 				"Start or stop the \(.applicationName) stopwatch",
@@ -61,24 +86,6 @@ struct ClockItShortcuts: AppShortcutsProvider {
 			systemImageName: "stopwatch"
 		)
 		AppShortcut(
-			intent: StartStopwatchIntent(),
-			phrases: [
-				"Start the stopwatch in \(.applicationName)",
-				"Start the \(.applicationName) stopwatch"
-			],
-			shortTitle: "Start Stopwatch",
-			systemImageName: "play.fill"
-		)
-		AppShortcut(
-			intent: StopStopwatchIntent(),
-			phrases: [
-				"Stop the stopwatch in \(.applicationName)",
-				"Stop the \(.applicationName) stopwatch"
-			],
-			shortTitle: "Stop Stopwatch",
-			systemImageName: "stop.fill"
-		)
-		AppShortcut(
 			intent: LapStopwatchIntent(),
 			phrases: [
 				"Record a lap in \(.applicationName)",
@@ -86,15 +93,6 @@ struct ClockItShortcuts: AppShortcutsProvider {
 			],
 			shortTitle: "Record Lap",
 			systemImageName: "flag.fill"
-		)
-		AppShortcut(
-			intent: ResetStopwatchIntent(),
-			phrases: [
-				"Reset the stopwatch in \(.applicationName)",
-				"Reset the \(.applicationName) stopwatch"
-			],
-			shortTitle: "Reset Stopwatch",
-			systemImageName: "arrow.counterclockwise"
 		)
 	}
 }

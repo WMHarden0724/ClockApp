@@ -9,9 +9,10 @@
 import SwiftUI
 
 
-/// The menu bar item: the next timer's time left, or just the icon when nothing's running.
+/// The menu bar item: the next timer's time left; with no timers, the next alarm within 12 hours.
 struct MenuBarTimerLabel: View {
 	let store: TimerStore
+	let clockStore: ClockStore
 
 	var body: some View {
 		TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -19,6 +20,8 @@ struct MenuBarTimerLabel: View {
 				let remaining = timer.remaining(at: context.date)
 				Text("\(Image(systemName: timer.isRunning ? "timer" : "pause.fill")) \(remaining <= 0 ? timer.kind.doneText : remaining.timerText)")
 					.monospacedDigit()
+			} else if let next = clockStore.nextAlarm, next.date.timeIntervalSince(context.date) < 12 * 3600 {
+				Text("\(Image(systemName: "alarm")) \(next.date.timeText)")
 			} else {
 				Image(systemName: "timer")
 			}
@@ -36,6 +39,7 @@ struct MenuBarTimerLabel: View {
 /// Each timer with its controls, then all-timer actions, saved timers and quick starts.
 struct MenuBarTimerMenu: View {
 	@Environment(TimerStore.self) private var store
+	@Environment(ClockStore.self) private var clockStore
 
 	var body: some View {
 		let now = Date()
@@ -89,6 +93,21 @@ struct MenuBarTimerMenu: View {
 				Button(preset.label.isEmpty ? preset.duration.durationLabel : "\(preset.label) · \(preset.duration.timerText)") {
 					store.start(preset)
 				}
+			}
+		}
+
+		Divider()
+		Section("Alarms") {
+			if let next = clockStore.nextAlarm {
+				Text("Next: \(next.alarm.displayLabel), \(next.date.relativeDayAndTime)")
+			} else if clockStore.isPaused, let until = clockStore.pausedUntil {
+				Text("Paused until \(until.formatted(date: .abbreviated, time: .omitted))")
+			}
+			ForEach(clockStore.alarms) { alarm in
+				Toggle("\(alarm.timeText) · \(alarm.displayLabel)", isOn: Binding(
+					get: { alarm.isEnabled },
+					set: { clockStore.setEnabled($0, for: alarm.id) }
+				))
 			}
 		}
 

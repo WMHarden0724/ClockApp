@@ -8,6 +8,7 @@
 #if os(iOS)
 import ActivityKit
 import AlarmKit
+import AppIntents
 #endif
 import SwiftUI
 
@@ -33,10 +34,11 @@ enum AlarmScheduler {
 		}
 	}
 
-	/// Cancels any existing system alarm for this id, then reschedules it if it's enabled.
-	static func sync(_ alarm: AppAlarm) async {
+	/// Cancels any existing system alarm for this id, then reschedules it if it's active.
+	/// `notBefore` holds alarms back while they're paused.
+	static func sync(_ alarm: AppAlarm, isActive: Bool, notBefore: Date?) async {
 		cancel(alarm.id)
-		guard isRingingDevice, alarm.isEnabled, let schedule = schedule(for: alarm) else { return }
+		guard isRingingDevice, isActive, let schedule = schedule(for: alarm, notBefore: notBefore) else { return }
 		guard await requestAuthorizationIfNeeded() else { return }
 
 		let snooze = AlarmButton(text: "Snooze", textColor: ClockItPalette.accent, systemImageName: "zzz")
@@ -50,10 +52,16 @@ enum AlarmScheduler {
 			metadata: ClockItAlarmMetadata(kind: .alarm, label: alarm.displayLabel, uses24Hour: AppSettings.shared.uses24Hour),
 			tintColor: ClockItPalette.accent
 		)
+		// Stop runs in the app: it books the next ring, or opens the wake-up mission.
+		let stopIntent: any LiveActivityIntent = alarm.mission == .none
+			? AlarmStoppedIntent(alarmID: alarm.id)
+			: WakeMissionIntent(alarmID: alarm.id)
 		let configuration = AlarmManager.AlarmConfiguration(
 			countdownDuration: Alarm.CountdownDuration(preAlert: nil, postAlert: TimeInterval(alarm.snoozeMinutes * 60)),
 			schedule: schedule,
-			attributes: attributes
+			attributes: attributes,
+			stopIntent: stopIntent,
+			sound: alarm.sound.fileName.map { .named($0) } ?? .default
 		)
 
 		do {
@@ -65,6 +73,27 @@ enum AlarmScheduler {
 
 	static func cancel(_ id: UUID) {
 		try? manager.cancel(id: id)
+	}
+
+	/// Rings again in a minute unless the wake-up mission gets done first. Stopping it reopens the mission.
+	static func scheduleMissionNag(_ mission: ClockStore.ActiveMission, sound: TimerSound) async {
+		guard isRingingDevice, await requestAuthorizationIfNeeded() else { return }
+		let presentation = AlarmPresentation(
+			alert: AlarmPresentation.Alert(title: "Finish your wake-up mission"),
+			countdown: AlarmPresentation.Countdown(title: "Finish your mission to stop the alarm")
+		)
+		let attributes = AlarmAttributes<ClockItAlarmMetadata>(
+			presentation: presentation,
+			metadata: ClockItAlarmMetadata(kind: .alarm, label: mission.label, uses24Hour: AppSettings.shared.uses24Hour),
+			tintColor: ClockItPalette.accent
+		)
+		let configuration = AlarmManager.AlarmConfiguration(
+			countdownDuration: Alarm.CountdownDuration(preAlert: 60, postAlert: nil),
+			attributes: attributes,
+			stopIntent: WakeMissionIntent(alarmID: mission.alarmID),
+			sound: sound.fileName.map { .named($0) } ?? .default
+		)
+		_ = try? await manager.schedule(id: mission.nagID, configuration: configuration)
 	}
 
 	// MARK: Timers
@@ -125,9 +154,9 @@ enum AlarmScheduler {
 		return Set(alarms.map(\.id))
 	}
 
-	private static func schedule(for alarm: AppAlarm) -> Alarm.Schedule? {
-		if alarm.specificDate != nil {
-			return alarm.nextFireDate().map { .fixed($0) }
+	private static func schedule(for alarm: AppAlarm, notBefore: Date?) -> Alarm.Schedule? {
+		if alarm.needsFixedSchedule(notBefore: notBefore) {
+			return alarm.nextFireDate(notBefore: notBefore).map { .fixed($0) }
 		}
 		let weekdays = alarm.repeatDays.sorted().compactMap { weekdayMap[$0] }
 		return .relative(Alarm.Schedule.Relative(
@@ -146,7 +175,8 @@ enum AlarmScheduler {
 enum AlarmScheduler {
 	static let isRingingDevice = false
 
-	static func sync(_ alarm: AppAlarm) async {}
+	static func sync(_ alarm: AppAlarm, isActive: Bool, notBefore: Date?) async {}
+	static func scheduleMissionNag(_ mission: ClockStore.ActiveMission, sound: TimerSound) async {}
 	static func cancel(_ id: UUID) {}
 	static func startTimer(_ timer: AppTimer) async -> Bool { true }
 	static func pause(_ id: UUID) {}

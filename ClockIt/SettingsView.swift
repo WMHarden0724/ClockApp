@@ -43,6 +43,7 @@ struct SettingsView: View {
 	@Environment(TimerStore.self) private var timerStore
 	@Bindable private var settings = AppSettings.shared
 	@State private var section: SettingsSection
+	@State private var showingWelcome = false
 
 	init(section: SettingsSection = .general) {
 		_section = State(initialValue: section)
@@ -113,6 +114,29 @@ struct SettingsView: View {
 				.font(.footnote)
 				.foregroundStyle(.secondary)
 
+			Divider()
+
+			Stepper(value: $settings.sleepGoalMinutes, in: 240...720, step: 15) {
+				HStack {
+					Label("Sleep Goal", systemImage: "bed.double")
+					Spacer()
+					Text("\(settings.sleepGoalMinutes / 60) h \(settings.sleepGoalMinutes % 60 == 0 ? "" : "\(settings.sleepGoalMinutes % 60) m")")
+						.monospacedDigit()
+						.foregroundStyle(.secondary)
+				}
+			}
+
+			Toggle(isOn: $settings.bedtimeReminder) {
+				Label("Bedtime Reminder", systemImage: "moon.zzz")
+			}
+			.tint(Theme.accent)
+			.onChange(of: settings.bedtimeReminder) { store.refreshReminders() }
+			.onChange(of: settings.sleepGoalMinutes) { store.refreshReminders() }
+
+			Text("Shows when to go to bed for your next alarm. The reminder comes 15 minutes before bedtime.")
+				.font(.footnote)
+				.foregroundStyle(.secondary)
+
 			if AppSettings.canRing {
 				Divider()
 
@@ -135,6 +159,22 @@ struct SettingsView: View {
 
 	private var stopwatchCard: some View {
 		VStack(alignment: .leading, spacing: 14) {
+			Picker(selection: $settings.stopwatchDialStyle.animation(.snappy)) {
+				ForEach(AppSettings.StopwatchDialStyle.allCases) { style in
+					Text(style.title).tag(style)
+				}
+			} label: {
+				Label("Dial", systemImage: "dot.radiowaves.left.and.right")
+			}
+			.pickerStyle(.segmented)
+			Text(settings.stopwatchDialStyle == .radar
+				 ? "A radar scope: the beam sweeps once a minute and each lap lights up as a blip."
+				 : "A chronograph with a sweeping hand, a minutes sub-dial and a pace ring.")
+				.font(.footnote)
+				.foregroundStyle(.secondary)
+
+			Divider()
+
 			Toggle(isOn: $settings.stopwatchKeepsScreenAwake) {
 				Label("Keep Screen Awake", systemImage: "sun.max")
 			}
@@ -147,7 +187,7 @@ struct SettingsView: View {
 			Toggle(isOn: $settings.stopwatchShowsPaceRing) {
 				Label("Pace Ring", systemImage: "circle.dashed")
 			}
-			Text("The outer ring compares your current lap to your best one.")
+			Text("The outer ring compares your current lap to your best one. Chronograph only.")
 				.font(.footnote)
 				.foregroundStyle(.secondary)
 		}
@@ -284,8 +324,20 @@ struct SettingsView: View {
 			Text("Applies to alarms, world clocks, timers, the stopwatch history and the Lock Screen.")
 				.font(.footnote)
 				.foregroundStyle(.secondary)
+
+			Divider()
+
+			Button {
+				showingWelcome = true
+			} label: {
+				Label("Show Welcome Again", systemImage: "sparkles")
+			}
+			.glassButton()
 		}
 		.glassCard()
+		.fullScreenOrSheet(isPresented: $showingWelcome) {
+			WelcomeView()
+		}
 	}
 }
 

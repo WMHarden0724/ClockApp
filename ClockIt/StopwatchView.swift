@@ -29,11 +29,24 @@ struct StopwatchView: View {
 			ScrollView {
 				VStack(spacing: 20) {
 					TimelineView(.animation(paused: !stopwatch.isRunning)) { context in
-						StopwatchDial(
-							elapsed: stopwatch.elapsed(at: context.date),
-							currentLap: stopwatch.currentLap(at: context.date),
-							laps: stopwatch.laps
-						)
+						let elapsed = stopwatch.elapsed(at: context.date)
+						let currentLap = stopwatch.currentLap(at: context.date)
+						switch AppSettings.shared.stopwatchDialStyle {
+						case .chronograph:
+							StopwatchDial(elapsed: elapsed, currentLap: currentLap, laps: stopwatch.laps)
+						case .radar:
+							RadarDial(elapsed: elapsed, currentLap: currentLap, laps: stopwatch.laps)
+						}
+					}
+					.contextMenu {
+						Picker("Dial", selection: Binding(
+							get: { AppSettings.shared.stopwatchDialStyle },
+							set: { AppSettings.shared.stopwatchDialStyle = $0 }
+						)) {
+							ForEach(AppSettings.StopwatchDialStyle.allCases) { style in
+								Text(style.title).tag(style)
+							}
+						}
 					}
 					.frame(maxWidth: 360)
 					.padding(.top, 8)

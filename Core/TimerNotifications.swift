@@ -19,11 +19,10 @@ enum TimerNotifications {
 	private static let prefix = "timer."
 	private static var scheduledIDs: [String] = []
 	private static var requestedPermission = false
-	private static let presenter = ForegroundPresenter()
 
 	static func update(for timers: [AppTimer]) {
 		let center = UNUserNotificationCenter.current()
-		center.delegate = presenter
+		center.delegate = NotificationPresenter.shared
 		center.removePendingNotificationRequests(withIdentifiers: scheduledIDs)
 		scheduledIDs = []
 
@@ -86,8 +85,10 @@ enum TimerNotifications {
 }
 
 
-/// Shows step cues and heads-ups even while ClockIt is open, so a workout on screen still chimes.
-private final class ForegroundPresenter: NSObject, UNUserNotificationCenterDelegate {
+/// Shows ClockIt's notifications even while it's open, so a workout on screen still chimes.
+final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate {
+	static let shared = NotificationPresenter()
+
 	nonisolated func userNotificationCenter(
 		_ center: UNUserNotificationCenter,
 		willPresent notification: UNNotification

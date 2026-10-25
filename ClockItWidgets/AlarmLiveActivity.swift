@@ -20,6 +20,7 @@ struct ClockItWidgetsBundle: WidgetBundle {
 		StopwatchToggleControl()
 		StopwatchLapControl()
 		StartTimerControl()
+		AlarmToggleControl()
 	}
 }
 

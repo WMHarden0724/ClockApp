@@ -31,6 +31,20 @@ final class AppSettings {
 		}
 	}
 
+	/// How the stopwatch is drawn.
+	enum StopwatchDialStyle: String, CaseIterable, Identifiable {
+		case chronograph, radar
+
+		var id: String { rawValue }
+
+		var title: String {
+			switch self {
+			case .chronograph: "Chronograph"
+			case .radar: "Radar"
+			}
+		}
+	}
+
 	/// A gentle notification before a timer ends.
 	enum TimerHeadsUp: String, CaseIterable, Identifiable {
 		case off, oneMinute, fiveMinutes, halfway
@@ -68,6 +82,10 @@ final class AppSettings {
 	private static let headsUpKey = "timerHeadsUp"
 	private static let menuBarKey = "showsMenuBarTimer"
 	private static let soundsKey = "timerSoundsByCategory"
+	private static let sleepGoalKey = "sleepGoalMinutes"
+	private static let bedtimeReminderKey = "bedtimeReminder"
+	private static let welcomeKey = "hasSeenWelcome"
+	private static let dialStyleKey = "stopwatchDialStyle"
 
 	var timeFormat: TimeFormat {
 		didSet { UserDefaults.standard.set(timeFormat.rawValue, forKey: Self.timeFormatKey) }
@@ -100,8 +118,27 @@ final class AppSettings {
 		#endif
 	}
 
+	var stopwatchDialStyle: StopwatchDialStyle {
+		didSet { UserDefaults.standard.set(stopwatchDialStyle.rawValue, forKey: Self.dialStyleKey) }
+	}
+
 	var stopwatchShowsPaceRing: Bool {
 		didSet { UserDefaults.standard.set(stopwatchShowsPaceRing, forKey: Self.paceRingKey) }
+	}
+
+	/// The welcome screen shows on first launch, until you get through it.
+	var hasSeenWelcome: Bool {
+		didSet { UserDefaults.standard.set(hasSeenWelcome, forKey: Self.welcomeKey) }
+	}
+
+	/// How much sleep you want before your next alarm.
+	var sleepGoalMinutes: Int {
+		didSet { UserDefaults.standard.set(sleepGoalMinutes, forKey: Self.sleepGoalKey) }
+	}
+
+	/// A wind-down notification 15 minutes before bedtime for your next alarm.
+	var bedtimeReminder: Bool {
+		didSet { UserDefaults.standard.set(bedtimeReminder, forKey: Self.bedtimeReminderKey) }
 	}
 
 	var timerHeadsUp: TimerHeadsUp {
@@ -164,6 +201,10 @@ final class AppSettings {
 		defaultSnoozeMinutes = UserDefaults.standard.object(forKey: Self.defaultSnoozeKey) as? Int ?? 9
 		stopwatchKeepsScreenAwake = UserDefaults.standard.object(forKey: Self.keepAwakeKey) as? Bool ?? false
 		stopwatchShowsPaceRing = UserDefaults.standard.object(forKey: Self.paceRingKey) as? Bool ?? true
+		hasSeenWelcome = UserDefaults.standard.bool(forKey: Self.welcomeKey)
+		stopwatchDialStyle = UserDefaults.standard.string(forKey: Self.dialStyleKey).flatMap(StopwatchDialStyle.init) ?? .chronograph
+		sleepGoalMinutes = UserDefaults.standard.object(forKey: Self.sleepGoalKey) as? Int ?? 480
+		bedtimeReminder = UserDefaults.standard.object(forKey: Self.bedtimeReminderKey) as? Bool ?? false
 		timerHeadsUp = UserDefaults.standard.string(forKey: Self.headsUpKey).flatMap(TimerHeadsUp.init) ?? .off
 		showsMenuBarTimer = UserDefaults.standard.object(forKey: Self.menuBarKey) as? Bool ?? true
 		timerSounds = UserDefaults.standard.dictionary(forKey: Self.soundsKey) as? [String: String] ?? [:]

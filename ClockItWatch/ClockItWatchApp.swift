@@ -10,7 +10,7 @@ import SwiftUI
 
 @main
 struct ClockItWatchApp: App {
-	@State private var store = ClockStore()
+	@State private var store = ClockStore.shared
 	@State private var timerStore = TimerStore.shared
 
 	init() {

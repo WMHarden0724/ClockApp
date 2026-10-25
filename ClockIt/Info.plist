@@ -4,6 +4,10 @@
 <dict>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>ClockIt schedules your alarms so they ring even when your phone is silenced or locked.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Sunrise alarms use your location once, when you set them up, to work out when the sun comes up where you are.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>The Shake wake-up mission counts shakes to make sure you're up before the alarm stops.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

@@ -9,7 +9,7 @@ import SwiftUI
 
 @main
 struct ClockItApp: App {
-	@State private var store = ClockStore()
+	@State private var store = ClockStore.shared
 	@State private var timerStore = TimerStore.shared
 	@State private var settings = AppSettings.shared
 	@Environment(\.scenePhase) private var scenePhase
@@ -50,8 +50,9 @@ struct ClockItApp: App {
 		MenuBarExtra(isInserted: $settings.showsMenuBarTimer) {
 			MenuBarTimerMenu()
 				.environment(timerStore)
+				.environment(store)
 		} label: {
-			MenuBarTimerLabel(store: timerStore)
+			MenuBarTimerLabel(store: timerStore, clockStore: store)
 		}
 		#endif
     }
@@ -64,11 +65,13 @@ struct ContentView: View {
 	}
 
 	@State private var selection: Section = .alarms
+	@State private var showingWelcome = !AppSettings.shared.hasSeenWelcome
+	@Environment(ClockStore.self) private var clockStore
 
 	var body: some View {
 		TabView(selection: $selection) {
 			Tab("Alarms", systemImage: "alarm", value: .alarms) {
-				AlarmsView()
+				AlarmsView(isSelected: selection == .alarms)
 			}
 
 			Tab("World Clock", systemImage: "globe", value: .worldClock) {
@@ -87,6 +90,14 @@ struct ContentView: View {
 		}
 		// A sidebar on iPad, Mac and Vision Pro; tabs on iPhone.
 		.tabViewStyle(.sidebarAdaptable)
+		.fullScreenOrSheet(isPresented: $showingWelcome) {
+			WelcomeView()
+		}
+		#if os(iOS)
+		.fullScreenCover(item: Binding(get: { clockStore.activeMission }, set: { _ in })) { mission in
+			WakeMissionView(mission: mission)
+		}
+		#endif
 	}
 }
 

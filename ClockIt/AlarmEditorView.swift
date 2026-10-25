@@ -5,11 +5,15 @@
 //  Created by Wesley Harden on 10/24/26.
 //
 
+#if os(iOS)
+import CoreLocation
+#endif
 import SwiftUI
 
 
 struct AlarmEditorView: View {
 	@Environment(\.dismiss) private var dismiss
+	@Environment(ClockStore.self) private var store
 	let existing: AppAlarm?
 	let onSave: (AppAlarm) -> Void
 	let onDelete: (() -> Void)?
@@ -22,7 +26,13 @@ struct AlarmEditorView: View {
 	@State private var useSpecificDate = false
 	@State private var specificDate = Date()
 	@State private var snoozeMinutes = 9
-	@State private var volumeRamp = false
+	@State private var sound: TimerSound = .standard
+	@State private var mission: AppAlarm.MissionType = .none
+	@State private var group = ""
+	@State private var timeZoneIdentifier: String?
+	@State private var sunrise: AppAlarm.SunriseOption?
+	@State private var locating = false
+	@State private var locationError: String?
 
 	init(alarm: AppAlarm?, onSave: @escaping (AppAlarm) -> Void, onDelete: (() -> Void)? = nil) {
 		self.existing = alarm
@@ -37,7 +47,11 @@ struct AlarmEditorView: View {
 			_useSpecificDate = State(initialValue: alarm.specificDate != nil)
 			_specificDate = State(initialValue: alarm.specificDate ?? Date())
 			_snoozeMinutes = State(initialValue: alarm.snoozeMinutes)
-			_volumeRamp = State(initialValue: alarm.volumeRamp)
+			_sound = State(initialValue: alarm.sound)
+			_mission = State(initialValue: alarm.mission)
+			_group = State(initialValue: alarm.group ?? "")
+			_timeZoneIdentifier = State(initialValue: alarm.timeZoneIdentifier)
+			_sunrise = State(initialValue: alarm.sunrise)
 		} else {
 			_snoozeMinutes = State(initialValue: AppSettings.shared.defaultSnoozeMinutes)
 		}
@@ -53,9 +67,13 @@ struct AlarmEditorView: View {
 			repeatDays: useSpecificDate ? [] : repeatDays,
 			specificDate: useSpecificDate ? specificDate : nil,
 			snoozeMinutes: snoozeMinutes,
-			soundName: "default",
-			volumeRamp: volumeRamp,
-			missionType: nil
+			soundName: sound.rawValue,
+			missionType: mission == .none ? nil : mission,
+			skipUntil: existing?.skipUntil,
+			timeZoneIdentifier: sunrise == nil ? timeZoneIdentifier : nil,
+			sunrise: sunrise,
+			group: group.trimmingCharacters(in: .whitespaces).isEmpty ? nil : group.trimmingCharacters(in: .whitespaces),
+			isQuick: existing?.isQuick
 		)
 	}
 
@@ -63,9 +81,14 @@ struct AlarmEditorView: View {
 		NavigationStack {
 			ScrollView {
 				VStack(spacing: 16) {
-					dialCard
+					if sunrise == nil {
+						dialCard
+					} else {
+						sunriseCard
+					}
 					detailsCard
 					scheduleCard
+					ringCard
 					optionsCard
 
 					if let onDelete {
@@ -90,7 +113,14 @@ struct AlarmEditorView: View {
 				}
 				ToolbarItem(placement: .confirmationAction) {
 					Button("Save") {
-						onSave(draft)
+						var alarm = draft
+						// Sunrise alarms sort by today's sunrise.
+						if sunrise != nil, let next = alarm.nextFireDate() {
+							let parts = Calendar.current.dateComponents([.hour, .minute], from: next)
+							alarm.hour = parts.hour ?? alarm.hour
+							alarm.minute = parts.minute ?? alarm.minute
+						}
+						onSave(alarm)
 						dismiss()
 					}
 				}
@@ -102,7 +132,11 @@ struct AlarmEditorView: View {
 	}
 
 	private var alarmHour: Double {
-		Double(hour) + Double(minute) / 60
+		if sunrise != nil, let next = draft.nextFireDate() {
+			let parts = Calendar.current.dateComponents([.hour, .minute], from: next)
+			return Double(parts.hour ?? 6) + Double(parts.minute ?? 0) / 60
+		}
+		return Double(hour) + Double(minute) / 60
 	}
 
 	private var dialCard: some View {
@@ -113,20 +147,67 @@ struct AlarmEditorView: View {
 			HStack {
 				nudgeButton(systemImage: "minus", minutes: -1)
 				Spacer()
-				TimelineView(.everyMinute) { context in
-					Group {
-						if let next = draft.nextFireDate(after: context.date) {
-							Text("Rings in \(next.countdownText(from: context.date))")
-						} else {
-							Text("That date has passed")
-						}
-					}
-					.font(.subheadline.weight(.medium))
-					.foregroundStyle(.secondary)
-					.contentTransition(.numericText())
-				}
+				ringsIn
 				Spacer()
 				nudgeButton(systemImage: "plus", minutes: 1)
+			}
+
+			if let zone = draft.timeZone, zone != .current, let next = draft.nextFireDate() {
+				Text("\(next.timeText) here")
+					.font(.footnote)
+					.foregroundStyle(.secondary)
+			}
+		}
+		.frame(maxWidth: .infinity)
+		.glassCard()
+	}
+
+	private var ringsIn: some View {
+		TimelineView(.everyMinute) { context in
+			Group {
+				if let next = draft.nextFireDate(after: context.date) {
+					Text("Rings in \(next.countdownText(from: context.date))")
+				} else {
+					Text("That date has passed")
+				}
+			}
+			.font(.subheadline.weight(.medium))
+			.foregroundStyle(.secondary)
+			.contentTransition(.numericText())
+		}
+	}
+
+	private var sunriseCard: some View {
+		VStack(spacing: 12) {
+			Image(systemName: "sunrise.fill")
+				.font(.system(size: 44))
+				.symbolRenderingMode(.multicolor)
+
+			if let next = draft.nextFireDate() {
+				Text(next.timeText)
+					.font(Theme.clockFont(56))
+					.monospacedDigit()
+				Text(next.relativeDayAndTime)
+					.font(.subheadline)
+					.foregroundStyle(.secondary)
+			} else {
+				Text("No sunrise soon here")
+					.font(.title3)
+			}
+
+			if let sunrise {
+				Stepper(value: Binding(
+					get: { sunrise.offsetMinutes },
+					set: { self.sunrise?.offsetMinutes = $0 }
+				), in: -120...120, step: 5) {
+					Text(sunrise.offsetMinutes == 0 ? "At sunrise"
+						 : sunrise.offsetMinutes > 0 ? "\(sunrise.offsetMinutes) min after sunrise"
+						 : "\(-sunrise.offsetMinutes) min before sunrise")
+						.monospacedDigit()
+				}
+				Text("Moves with the seasons · \(sunrise.placeName)")
+					.font(.footnote)
+					.foregroundStyle(.secondary)
 			}
 		}
 		.frame(maxWidth: .infinity)
@@ -152,6 +233,25 @@ struct AlarmEditorView: View {
 		VStack(spacing: 14) {
 			TextField("Label", text: $label, prompt: Text("Alarm"))
 				.font(.title3)
+			Divider()
+			HStack {
+				Label("Group", systemImage: "square.stack")
+				TextField("Group", text: $group, prompt: Text("None"))
+					.multilineTextAlignment(.trailing)
+				if !store.groups.isEmpty {
+					Menu {
+						ForEach(store.groups, id: \.self) { name in
+							Button(name) { group = name }
+						}
+						Button("None") { group = "" }
+					} label: {
+						Image(systemName: "chevron.up.chevron.down")
+					}
+					.menuStyle(.button)
+					.buttonStyle(.plain)
+					.fixedSize()
+				}
+			}
 			Divider()
 			Toggle("Enabled", isOn: $isEnabled)
 		}
@@ -182,23 +282,111 @@ struct AlarmEditorView: View {
 		.glassCard()
 	}
 
+	/// When it rings: a time here or in another city, or with the sunrise.
+	private var ringCard: some View {
+		VStack(alignment: .leading, spacing: 14) {
+			if sunrise == nil {
+				Picker(selection: $timeZoneIdentifier) {
+					Text("Here").tag(String?.none)
+					ForEach(store.cities.filter { $0.timeZoneIdentifier != TimeZone.current.identifier }) { city in
+						Text(city.displayName).tag(Optional(city.timeZoneIdentifier))
+					}
+				} label: {
+					Label("Time In", systemImage: "globe")
+				}
+				Text("Rings at this time in that city, wherever you are. Handy for calls.")
+					.font(.footnote)
+					.foregroundStyle(.secondary)
+			}
+
+			#if os(iOS)
+			if sunrise == nil { Divider() }
+			Toggle(isOn: Binding(
+				get: { sunrise != nil },
+				set: { $0 ? locateForSunrise() : (sunrise = nil) }
+			)) {
+				Label(locating ? "Finding your location…" : "Ring at Sunrise", systemImage: "sunrise")
+			}
+			.disabled(locating)
+			if let locationError {
+				Text(locationError)
+					.font(.footnote)
+					.foregroundStyle(.red)
+			}
+			#else
+			if sunrise != nil {
+				Label("Rings at sunrise. Set up on iPhone.", systemImage: "sunrise")
+			}
+			#endif
+		}
+		.tint(Theme.accent)
+		.glassCard()
+	}
+
 	private var optionsCard: some View {
-		Stepper(value: $snoozeMinutes, in: 1...30) {
-			HStack {
-				Label("Snooze", systemImage: "zzz")
-				Spacer()
-				Text("\(snoozeMinutes) min")
-					.monospacedDigit()
+		VStack(alignment: .leading, spacing: 14) {
+			Stepper(value: $snoozeMinutes, in: 1...30) {
+				HStack {
+					Label("Snooze", systemImage: "zzz")
+					Spacer()
+					Text("\(snoozeMinutes) min")
+						.monospacedDigit()
+						.foregroundStyle(.secondary)
+				}
+			}
+
+			Divider()
+
+			TimerSoundPicker(sound: $sound, tint: Theme.accent)
+
+			Divider()
+
+			VStack(alignment: .leading, spacing: 8) {
+				Label("Wake-Up Mission", systemImage: "figure.walk.motion")
+				Picker("Wake-Up Mission", selection: $mission) {
+					ForEach(AppAlarm.MissionType.allCases) { option in
+						Text(option.title).tag(option)
+					}
+				}
+				.pickerStyle(.segmented)
+				.labelsHidden()
+				Text(mission == .none
+					 ? "Stop turns the alarm off right away."
+					 : "Stop opens ClockIt, and the alarm rings again every minute until you \(mission == .math ? "solve three problems" : "shake your phone 30 times"). Works on iPhone.")
+					.font(.footnote)
 					.foregroundStyle(.secondary)
 			}
 		}
 		.glassCard()
 	}
+
+	#if os(iOS)
+	/// Sunrise alarms need to know where you are; ask once, when you turn it on.
+	private func locateForSunrise() {
+		locating = true
+		locationError = nil
+		Task {
+			defer { locating = false }
+			guard let location = await OneShotLocation.current() else {
+				locationError = "ClockIt couldn't get your location. Allow it in Settings › ClockIt › Location."
+				return
+			}
+			sunrise = AppAlarm.SunriseOption(
+				offsetMinutes: 0,
+				latitude: location.coordinate.latitude,
+				longitude: location.coordinate.longitude,
+				placeName: "Your location"
+			)
+			timeZoneIdentifier = nil
+		}
+	}
+	#endif
 }
 
 
 #Preview {
 	AlarmEditorView(alarm: nil) { _ in }
+		.environment(ClockStore.preview)
 }
 
 
@@ -228,3 +416,23 @@ private struct AlarmSkyBackground: View {
 		.ignoresSafeArea()
 	}
 }
+
+
+#if os(iOS)
+/// One location fix, asking for permission the first time.
+enum OneShotLocation {
+	static func current() async -> CLLocation? {
+		let session = CLServiceSession(authorization: .whenInUse)
+		defer { session.invalidate() }
+		do {
+			for try await update in CLLocationUpdate.liveUpdates() {
+				if let location = update.location { return location }
+				if update.authorizationDenied || update.authorizationDeniedGlobally { return nil }
+			}
+		} catch {
+			return nil
+		}
+		return nil
+	}
+}
+#endif
