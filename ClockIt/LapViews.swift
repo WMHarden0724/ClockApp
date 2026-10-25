@@ -28,7 +28,7 @@ struct LapStatsRow: View {
 	var body: some View {
 		let stats = LapStats(laps: laps)
 
-		GlassEffectContainer(spacing: 8) {
+		GlassGroup(spacing: 8) {
 			HStack(spacing: 8) {
 				chip("Best", value: stats.best, symbol: "hare.fill", tint: LapColors.fast)
 				chip("Average", value: stats.average, symbol: "equal", tint: Theme.accent)
@@ -50,7 +50,7 @@ struct LapStatsRow: View {
 		}
 		.frame(maxWidth: .infinity, alignment: .leading)
 		.padding(14)
-		.glassEffect(.regular.tint(tint.opacity(0.12)), in: .rect(cornerRadius: 20))
+		.softGlass(.regular.tint(tint.opacity(0.12)), in: .rect(cornerRadius: 20))
 	}
 }
 

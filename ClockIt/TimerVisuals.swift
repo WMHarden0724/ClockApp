@@ -8,32 +8,6 @@
 import SwiftUI
 
 
-/// How running timers are drawn. Chosen in Settings.
-enum TimerStyle: String, CaseIterable, Identifiable {
-	case ring, pie, analog, liquid
-
-	var id: String { rawValue }
-
-	var title: String {
-		switch self {
-		case .ring: "Ring"
-		case .pie: "Pie"
-		case .analog: "Analog"
-		case .liquid: "Liquid"
-		}
-	}
-
-	var caption: String {
-		switch self {
-		case .ring: "A ring that drains"
-		case .pie: "A circle that fills"
-		case .analog: "Drag the clock to set"
-		case .liquid: "The card drains"
-		}
-	}
-}
-
-
 // MARK: - Ring
 
 struct TimerRing: View {
@@ -317,6 +291,98 @@ private struct Wave: Shape {
 }
 
 
+// MARK: - Hourglass
+
+/// Sand drains from the top bulb, streams through the neck while running, and piles up below.
+struct TimerHourglass: View {
+	let remainingFraction: Double
+	let color: Color
+	let isRunning: Bool
+	/// Advances over time to animate the falling stream.
+	var phase: Double = 0
+	var isDone = false
+
+	var body: some View {
+		let sand = Color(red: 0.95, green: 0.80, blue: 0.55).mix(with: color, by: 0.35)
+		let remaining = isDone ? 0 : min(max(remainingFraction, 0), 1)
+
+		Canvas { context, size in
+			let capHeight = max(3, size.height * 0.06)
+			let glassRect = CGRect(x: size.width * 0.1, y: capHeight, width: size.width * 0.8, height: size.height - capHeight * 2)
+			let glass = Self.glassPath(in: glassRect)
+			let neckY = glassRect.midY
+			let bulbDepth = glassRect.height / 2
+
+			context.fill(glass, with: .color(.white.opacity(0.22)))
+
+			var inside = context
+			inside.clip(to: glass)
+
+			// Top bulb: sand rests against the neck and its surface drops as time runs out.
+			if remaining > 0 {
+				let surface = neckY - bulbDepth * 0.88 * remaining
+				inside.fill(Path(CGRect(x: glassRect.minX, y: surface, width: glassRect.width, height: neckY - surface)), with: .color(sand))
+			}
+
+			// Bottom bulb: a mound that grows with elapsed time.
+			let elapsed = 1 - remaining
+			let moundTop = glassRect.maxY - bulbDepth * 0.8 * elapsed
+			if elapsed > 0 {
+				var mound = Path()
+				let peak = min(bulbDepth * 0.12, (glassRect.maxY - moundTop))
+				mound.move(to: CGPoint(x: glassRect.minX, y: glassRect.maxY))
+				mound.addLine(to: CGPoint(x: glassRect.minX, y: moundTop + peak))
+				mound.addQuadCurve(to: CGPoint(x: glassRect.maxX, y: moundTop + peak), control: CGPoint(x: glassRect.midX, y: moundTop - peak))
+				mound.addLine(to: CGPoint(x: glassRect.maxX, y: glassRect.maxY))
+				mound.closeSubpath()
+				inside.fill(mound, with: .color(sand))
+			}
+
+			// The falling stream.
+			if isRunning && remaining > 0 {
+				var stream = Path()
+				stream.move(to: CGPoint(x: glassRect.midX, y: neckY))
+				stream.addLine(to: CGPoint(x: glassRect.midX, y: moundTop))
+				inside.stroke(stream, with: .color(sand), style: StrokeStyle(lineWidth: max(1.2, size.width * 0.03), lineCap: .round, dash: [3, 2.5], dashPhase: -phase * 24))
+			}
+
+			context.stroke(glass, with: .color(color.opacity(0.6)), lineWidth: 1.5)
+
+			for y in [0, size.height - capHeight] {
+				context.fill(Path(roundedRect: CGRect(x: 0, y: y, width: size.width, height: capHeight), cornerRadius: capHeight / 2), with: .color(color))
+			}
+		}
+		.rotationEffect(.degrees(isDone ? 180 : 0))
+		.animation(.spring(duration: 0.8, bounce: 0.3), value: isDone)
+		.accessibilityHidden(true)
+	}
+
+	/// Two rounded bulbs meeting at a narrow neck.
+	private static func glassPath(in rect: CGRect) -> Path {
+		let neck = rect.width * 0.07
+		let mid = rect.midY
+		var path = Path()
+		path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+		path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+		path.addCurve(to: CGPoint(x: rect.midX + neck, y: mid),
+					  control1: CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.3),
+					  control2: CGPoint(x: rect.midX + neck, y: mid - rect.height * 0.08))
+		path.addCurve(to: CGPoint(x: rect.maxX, y: rect.maxY),
+					  control1: CGPoint(x: rect.midX + neck, y: mid + rect.height * 0.08),
+					  control2: CGPoint(x: rect.maxX, y: rect.maxY - rect.height * 0.3))
+		path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+		path.addCurve(to: CGPoint(x: rect.midX - neck, y: mid),
+					  control1: CGPoint(x: rect.minX, y: rect.maxY - rect.height * 0.3),
+					  control2: CGPoint(x: rect.midX - neck, y: mid + rect.height * 0.08))
+		path.addCurve(to: CGPoint(x: rect.minX, y: rect.minY),
+					  control1: CGPoint(x: rect.midX - neck, y: mid - rect.height * 0.08),
+					  control2: CGPoint(x: rect.minX, y: rect.minY + rect.height * 0.3))
+		path.closeSubpath()
+		return path
+	}
+}
+
+
 // MARK: - Shared
 
 private struct TimerSymbol: View {
@@ -339,21 +405,21 @@ struct TimerStylePreview: View {
 	let color: Color
 
 	var body: some View {
-		Group {
-			switch style {
-			case .ring:
-				TimerRing(remainingFraction: 0.65, color: color, symbol: "timer", lineWidth: 6)
-			case .pie:
-				TimerPie(elapsedFraction: 0.35, color: color, symbol: "timer")
-			case .analog:
-				AnalogTimerFace(remaining: 20 * 60, color: color)
-			case .liquid:
-				TimelineView(.animation(minimumInterval: 1.0 / 20)) { context in
-					LiquidFill(level: 0.6, color: color, phase: context.date.timeIntervalSinceReferenceDate * 1.5)
-						.clipShape(.rect(cornerRadius: 14))
-						.overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(color.opacity(0.3)))
-				}
-			}
+		let size = TimerGraphic.cardSize(for: style)
+		let scale = min(64 / size.width, 64 / size.height)
+
+		TimelineView(.animation(minimumInterval: 1.0 / 20, paused: !style.isAnimated)) { context in
+			TimerGraphic(
+				style: style,
+				remaining: 20 * 60,
+				elapsed: 0.4,
+				color: color,
+				symbol: "timer",
+				isRunning: true,
+				isDone: false,
+				phase: context.date.timeIntervalSinceReferenceDate
+			)
+			.frame(width: size.width * scale, height: size.height * scale)
 		}
 		.frame(width: 64, height: 64)
 	}

@@ -11,6 +11,10 @@ import SwiftUI
 struct WorldClockRow: View {
 	let city: WorldClockCity
 	let date: Date
+	/// Used by the Mac morph into analog clocks: fades the text, rounds the card, and lets it fill its frame.
+	var detailOpacity: Double = 1
+	var cornerRadius: CGFloat = Theme.cornerRadius
+	var fillsFrame = false
 
 	var body: some View {
 		let hour = city.localHour(at: date)
@@ -47,6 +51,8 @@ struct WorldClockRow: View {
 					.transition(.opacity)
 			}
 		}
+		.opacity(detailOpacity)
+		.frame(maxWidth: fillsFrame ? .infinity : nil, maxHeight: fillsFrame ? .infinity : nil, alignment: .topLeading)
 		.foregroundStyle(ink)
 		.padding(20)
 		.background {
@@ -56,9 +62,9 @@ struct WorldClockRow: View {
 					.opacity(isNight ? 1 : 0)
 			}
 			.opacity(0.95)
-			.clipShape(.rect(cornerRadius: Theme.cornerRadius))
+			.clipShape(.rect(cornerRadius: cornerRadius))
 		}
-		.glassEffect(.regular, in: .rect(cornerRadius: Theme.cornerRadius))
+		.softGlass(.regular, in: .rect(cornerRadius: cornerRadius))
 		.animation(.smooth, value: date)
 		.animation(.smooth(duration: 0.8), value: isNight)
 		.accessibilityElement(children: .combine)

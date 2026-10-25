@@ -38,6 +38,8 @@ struct AlarmEditorView: View {
 			_specificDate = State(initialValue: alarm.specificDate ?? Date())
 			_snoozeMinutes = State(initialValue: alarm.snoozeMinutes)
 			_volumeRamp = State(initialValue: alarm.volumeRamp)
+		} else {
+			_snoozeMinutes = State(initialValue: AppSettings.shared.defaultSnoozeMinutes)
 		}
 	}
 
@@ -71,17 +73,17 @@ struct AlarmEditorView: View {
 							onDelete()
 							dismiss()
 						}
-						.buttonStyle(.glass)
+						.glassButton()
 						.controlSize(.large)
 						.padding(.top, 8)
 					}
 				}
 				.padding(16)
 			}
-			.scrollDismissesKeyboard(.interactively)
+			.dismissKeyboardOnScroll()
 			.background(AlarmSkyBackground(hour: alarmHour))
 			.navigationTitle(existing == nil ? "New Alarm" : "Edit Alarm")
-			.navigationBarTitleDisplayMode(.inline)
+			.inlineNavigationTitle()
 			.toolbar {
 				ToolbarItem(placement: .cancellationAction) {
 					Button("Cancel") { dismiss() }
@@ -141,7 +143,7 @@ struct AlarmEditorView: View {
 				.font(.body.weight(.semibold))
 				.frame(width: 32, height: 32)
 		}
-		.buttonStyle(.glass)
+		.glassButton()
 		.buttonBorderShape(.circle)
 		.accessibilityLabel(minutes > 0 ? "One minute later" : "One minute earlier")
 	}

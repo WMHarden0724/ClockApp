@@ -68,11 +68,11 @@ struct AuroraBackground: View {
 extension View {
 	/// A padded, full-width Liquid Glass card.
 	func glassCard(tint: Color? = nil, padding: CGFloat = 20) -> some View {
-		let glass: Glass = tint.map { Glass.regular.tint($0) } ?? .regular
+		let glass: SoftGlass = tint.map { SoftGlass.regular.tint($0) } ?? .regular
 		return self
 			.padding(padding)
 			.frame(maxWidth: .infinity, alignment: .leading)
-			.glassEffect(glass, in: .rect(cornerRadius: Theme.cornerRadius))
+			.softGlass(glass, in: .rect(cornerRadius: Theme.cornerRadius))
 	}
 
 	/// Strips the default List row chrome so glass cards float over the background.
@@ -93,36 +93,84 @@ extension View {
 private struct LocalTimeSubtitle: ViewModifier {
 	func body(content: Content) -> some View {
 		TimelineView(.everyMinute) { context in
-			content.navigationSubtitle(Text(LocalTime.label(for: context.date)))
+			content.navigationSubtitleIfAvailable(Text(LocalTime.label(for: context.date)))
 		}
 	}
 }
 
 
-enum LocalTime {
-	/// "Local · 9:41 PM", plus the shift when the user has scrubbed away from now.
-	static func label(for date: Date, offsetMinutes: Double = 0) -> String {
-		let time = date.timeText
-		guard offsetMinutes != 0 else { return "Local · \(time)" }
-		return "Local · \(time) (\(offsetText(minutes: offsetMinutes)))"
+// MARK: - Cross-platform helpers
+
+extension ToolbarItemPlacement {
+	/// Leading navigation bar slot on iPhone, iPad and Vision Pro; the navigation area on Mac.
+	static var barLeading: ToolbarItemPlacement {
+		#if os(macOS)
+		.navigation
+		#else
+		.topBarLeading
+		#endif
 	}
 
-	/// The user's city as named by their time zone, e.g. "New York" for America/New_York.
-	static var currentCity: String {
-		let identifier = TimeZone.current.identifier
-		let parts = identifier.split(separator: "/")
-		guard parts.count >= 2, let last = parts.last else {
-			return TimeZone.current.localizedName(for: .generic, locale: .current) ?? identifier
-		}
-		return String(last).replacing("_", with: " ")
+	/// Trailing navigation bar slot on iPhone, iPad and Vision Pro; the toolbar's primary area on Mac.
+	static var barTrailing: ToolbarItemPlacement {
+		#if os(macOS)
+		.primaryAction
+		#else
+		.topBarTrailing
+		#endif
+	}
+}
+
+
+extension SearchFieldPlacement {
+	/// Always-visible search field under the title where the platform supports it.
+	static var drawer: SearchFieldPlacement {
+		#if os(macOS)
+		.automatic
+		#else
+		.navigationBarDrawer(displayMode: .always)
+		#endif
+	}
+}
+
+
+extension View {
+	/// Small, centered navigation title (no-op on Mac, where titles are always inline).
+	@ViewBuilder
+	func inlineNavigationTitle() -> some View {
+		#if os(macOS)
+		self
+		#else
+		navigationBarTitleDisplayMode(.inline)
+		#endif
 	}
 
-	static func offsetText(minutes: Double) -> String {
-		let total = Int(minutes)
-		let sign = total >= 0 ? "+" : "−"
-		let hours = abs(total) / 60
-		let mins = abs(total) % 60
-		if hours == 0 { return "\(sign)\(mins)m" }
-		return mins == 0 ? "\(sign)\(hours)h" : "\(sign)\(hours)h \(mins)m"
+	/// Full-screen cover on iPhone, iPad and Vision Pro; a sheet on Mac.
+	@ViewBuilder
+	func fullScreenOrSheet<Item: Identifiable, Content: View>(item: Binding<Item?>, @ViewBuilder content: @escaping (Item) -> Content) -> some View {
+		#if os(macOS)
+		sheet(item: item, content: content)
+		#else
+		fullScreenCover(item: item, content: content)
+		#endif
+	}
+
+	@ViewBuilder
+	func fullScreenOrSheet<Content: View>(isPresented: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) -> some View {
+		#if os(macOS)
+		sheet(isPresented: isPresented, content: content)
+		#else
+		fullScreenCover(isPresented: isPresented, content: content)
+		#endif
+	}
+
+	/// Wheel pickers where available; a compact menu on Mac.
+	@ViewBuilder
+	func wheelPickerStyleIfAvailable() -> some View {
+		#if os(macOS)
+		pickerStyle(.menu)
+		#else
+		pickerStyle(.wheel)
+		#endif
 	}
 }

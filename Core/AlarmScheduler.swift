@@ -5,13 +5,19 @@
 //  Created by Wesley Harden on 10/24/26.
 //
 
+#if os(iOS)
 import AlarmKit
+#endif
 import SwiftUI
 
 
-/// Bridges `AppAlarm` to real system alarms via AlarmKit.
+#if os(iOS)
+/// Bridges `AppAlarm` to real system alarms via AlarmKit. Only the device chosen to ring
+/// (Settings › Ring on This Device, on by default for iPhone) schedules anything.
 enum AlarmScheduler {
 	private static var manager: AlarmManager { .shared }
+
+	static var isRingingDevice: Bool { AppSettings.shared.ringsOnThisDevice }
 
 	static func requestAuthorizationIfNeeded() async -> Bool {
 		switch manager.authorizationState {
@@ -29,10 +35,10 @@ enum AlarmScheduler {
 	/// Cancels any existing system alarm for this id, then reschedules it if it's enabled.
 	static func sync(_ alarm: AppAlarm) async {
 		cancel(alarm.id)
-		guard alarm.isEnabled, let schedule = schedule(for: alarm) else { return }
+		guard isRingingDevice, alarm.isEnabled, let schedule = schedule(for: alarm) else { return }
 		guard await requestAuthorizationIfNeeded() else { return }
 
-		let snooze = AlarmButton(text: "Snooze", textColor: Theme.accent, systemImageName: "zzz")
+		let snooze = AlarmButton(text: "Snooze", textColor: ClockItPalette.accent, systemImageName: "zzz")
 		let alert = AlarmPresentation.Alert(
 			title: "\(alarm.displayLabel)",
 			secondaryButton: snooze,
@@ -41,7 +47,7 @@ enum AlarmScheduler {
 		let attributes = AlarmAttributes<ClockItAlarmMetadata>(
 			presentation: AlarmPresentation(alert: alert),
 			metadata: ClockItAlarmMetadata(kind: .alarm, label: alarm.displayLabel, uses24Hour: AppSettings.shared.uses24Hour),
-			tintColor: Theme.accent
+			tintColor: ClockItPalette.accent
 		)
 		let configuration = AlarmManager.AlarmConfiguration(
 			countdownDuration: Alarm.CountdownDuration(preAlert: nil, postAlert: TimeInterval(alarm.snoozeMinutes * 60)),
@@ -64,6 +70,8 @@ enum AlarmScheduler {
 
 	/// Starts a countdown that rings like an alarm and shows a Live Activity. Returns false if not allowed.
 	static func startTimer(_ timer: AppTimer) async -> Bool {
+		// Another device does the ringing; the timer still syncs there.
+		guard isRingingDevice else { return true }
 		guard await requestAuthorizationIfNeeded() else { return false }
 
 		let color = ClockItPalette.color(named: timer.colorName)
@@ -111,7 +119,7 @@ enum AlarmScheduler {
 
 	/// Ids AlarmKit currently has scheduled, or nil if we can't know (not authorized).
 	static func scheduledIDs() -> Set<UUID>? {
-		guard manager.authorizationState == .authorized, let alarms = try? manager.alarms else { return nil }
+		guard isRingingDevice, manager.authorizationState == .authorized, let alarms = try? manager.alarms else { return nil }
 		return Set(alarms.map(\.id))
 	}
 
@@ -130,3 +138,17 @@ enum AlarmScheduler {
 		1: .sunday, 2: .monday, 3: .tuesday, 4: .wednesday, 5: .thursday, 6: .friday, 7: .saturday
 	]
 }
+#else
+/// Mac, Apple Watch and Vision Pro can't ring AlarmKit alarms. Changes made there sync to the
+/// iPhone, which schedules them.
+enum AlarmScheduler {
+	static let isRingingDevice = false
+
+	static func sync(_ alarm: AppAlarm) async {}
+	static func cancel(_ id: UUID) {}
+	static func startTimer(_ timer: AppTimer) async -> Bool { true }
+	static func pause(_ id: UUID) {}
+	static func resume(_ id: UUID) {}
+	static func scheduledIDs() -> Set<UUID>? { nil }
+}
+#endif

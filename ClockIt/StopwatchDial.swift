@@ -63,7 +63,7 @@ struct StopwatchDial: View {
 					.shadow(color: Theme.accent.opacity(0.6), radius: 6)
 			}
 			.frame(width: geo.size.width, height: geo.size.height)
-			.glassEffect(.regular, in: .circle)
+			.softGlass(.regular, in: .circle)
 		}
 		.aspectRatio(1, contentMode: .fit)
 		.accessibilityElement()
@@ -111,7 +111,7 @@ struct StopwatchDial: View {
 	/// Fills as the current lap approaches your best lap time; turns rose once you're slower.
 	@ViewBuilder
 	private var paceRing: some View {
-		if let best = laps.min(), best > 0 {
+		if AppSettings.shared.stopwatchShowsPaceRing, let best = laps.min(), best > 0 {
 			let pace = currentLap / best
 			ZStack {
 				Circle()

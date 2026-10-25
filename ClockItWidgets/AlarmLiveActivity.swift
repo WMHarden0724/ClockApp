@@ -16,6 +16,9 @@ import WidgetKit
 struct ClockItWidgetsBundle: WidgetBundle {
 	var body: some Widget {
 		AlarmLiveActivity()
+		StopwatchLiveActivity()
+		StopwatchToggleControl()
+		StopwatchLapControl()
 	}
 }
 

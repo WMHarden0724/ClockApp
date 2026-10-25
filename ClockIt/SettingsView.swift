@@ -9,66 +9,30 @@ import Observation
 import SwiftUI
 
 
-/// App-wide preferences. Views that format times through it update as soon as a setting changes.
-@Observable
-final class AppSettings {
-	static let shared = AppSettings()
+/// One Settings page per tab, picked with the segmented control at the top.
+enum SettingsSection: String, CaseIterable, Identifiable {
+	case general, alarms, worldClock, stopwatch, timers
 
-	enum TimeFormat: String, CaseIterable, Identifiable {
-		case system, twelveHour, twentyFourHour
+	var id: String { rawValue }
 
-		var id: String { rawValue }
-
-		var title: String {
-			switch self {
-			case .system: "System"
-			case .twelveHour: "12-Hour"
-			case .twentyFourHour: "24-Hour"
-			}
+	var title: String {
+		switch self {
+		case .general: "General"
+		case .alarms: "Alarms"
+		case .worldClock: "World Clock"
+		case .stopwatch: "Stopwatch"
+		case .timers: "Timers"
 		}
 	}
 
-	private static let timeFormatKey = "timeFormat"
-	private static let timerStyleKey = "timerStyle"
-
-	var timeFormat: TimeFormat {
-		didSet { UserDefaults.standard.set(timeFormat.rawValue, forKey: Self.timeFormatKey) }
-	}
-
-	var timerStyle: TimerStyle {
-		didSet { UserDefaults.standard.set(timerStyle.rawValue, forKey: Self.timerStyleKey) }
-	}
-
-	/// nil follows the system setting.
-	var uses24Hour: Bool? {
-		switch timeFormat {
-		case .system: nil
-		case .twelveHour: false
-		case .twentyFourHour: true
+	var symbol: String {
+		switch self {
+		case .general: "gearshape"
+		case .alarms: "alarm"
+		case .worldClock: "globe"
+		case .stopwatch: "stopwatch"
+		case .timers: "timer"
 		}
-	}
-
-	var is24Hour: Bool { ClockFormat.is24Hour(uses24Hour) }
-
-	private init() {
-		timeFormat = UserDefaults.standard.string(forKey: Self.timeFormatKey).flatMap(TimeFormat.init) ?? .system
-		timerStyle = UserDefaults.standard.string(forKey: Self.timerStyleKey).flatMap(TimerStyle.init) ?? .ring
-	}
-}
-
-
-extension Date {
-	/// This time in the user's chosen 12/24-hour format.
-	var timeText: String {
-		ClockFormat.time(self, uses24Hour: AppSettings.shared.uses24Hour)
-	}
-
-	func timeText(in timeZone: TimeZone) -> String {
-		ClockFormat.time(self, uses24Hour: AppSettings.shared.uses24Hour, timeZone: timeZone)
-	}
-
-	var dateTimeText: String {
-		ClockFormat.dateTime(self, uses24Hour: AppSettings.shared.uses24Hour)
 	}
 }
 
@@ -76,20 +40,49 @@ extension Date {
 struct SettingsView: View {
 	@Environment(\.dismiss) private var dismiss
 	@Environment(ClockStore.self) private var store
+	@Environment(TimerStore.self) private var timerStore
 	@Bindable private var settings = AppSettings.shared
+	@State private var section: SettingsSection
+
+	init(section: SettingsSection = .general) {
+		_section = State(initialValue: section)
+	}
 
 	var body: some View {
 		NavigationStack {
 			ScrollView {
-				VStack(spacing: 16) {
-					timeFormatCard
-					timerStyleCard
+				VStack(alignment: .leading, spacing: 16) {
+					Picker("Section", selection: $section.animation(.snappy)) {
+						ForEach(SettingsSection.allCases) { section in
+							Image(systemName: section.symbol)
+								.accessibilityLabel(section.title)
+								.tag(section)
+						}
+					}
+					.pickerStyle(.segmented)
+
+					Text(section.title)
+						.font(.title2.weight(.bold))
+						.padding(.leading, 4)
+						.contentTransition(.opacity)
+
+					Group {
+						switch section {
+						case .general: timeFormatCard
+						case .alarms: alarmsCard
+						case .worldClock: myCityCard
+						case .stopwatch: stopwatchCard
+						case .timers: timerStyleCard
+						}
+					}
+					.transition(.opacity.combined(with: .move(edge: .bottom)))
 				}
 				.padding(16)
 			}
+			.sensoryFeedback(.selection, trigger: section)
 			.background(AuroraBackground())
 			.navigationTitle("Settings")
-			.navigationBarTitleDisplayMode(.inline)
+			.inlineNavigationTitle()
 			.toolbar {
 				ToolbarItem(placement: .confirmationAction) {
 					Button("Done") { dismiss() }
@@ -102,6 +95,90 @@ struct SettingsView: View {
 			.sensoryFeedback(.selection, trigger: settings.timeFormat)
 			.sensoryFeedback(.selection, trigger: settings.timerStyle)
 		}
+	}
+
+	private var alarmsCard: some View {
+		VStack(alignment: .leading, spacing: 12) {
+			Stepper(value: $settings.defaultSnoozeMinutes, in: 1...30) {
+				HStack {
+					Label("Default Snooze", systemImage: "zzz")
+					Spacer()
+					Text("\(settings.defaultSnoozeMinutes) min")
+						.monospacedDigit()
+						.foregroundStyle(.secondary)
+				}
+			}
+
+			Text("Used for new alarms. You can still change snooze on each alarm.")
+				.font(.footnote)
+				.foregroundStyle(.secondary)
+
+			if AppSettings.canRing {
+				Divider()
+
+				Toggle(isOn: $settings.ringsOnThisDevice) {
+					Label("Ring on This Device", systemImage: "bell.badge")
+				}
+				.tint(Theme.accent)
+				.onChange(of: settings.ringsOnThisDevice) {
+					store.resyncAlarms()
+					timerStore.rescheduleAll()
+				}
+
+				Text("Alarms and timers sync to all your devices but ring only where this is on. It's on for iPhone and off for iPad unless you change it.")
+					.font(.footnote)
+					.foregroundStyle(.secondary)
+			}
+		}
+		.glassCard()
+	}
+
+	private var stopwatchCard: some View {
+		VStack(alignment: .leading, spacing: 14) {
+			Toggle(isOn: $settings.stopwatchKeepsScreenAwake) {
+				Label("Keep Screen Awake", systemImage: "sun.max")
+			}
+			Text("Stops the screen from dimming while the stopwatch is running.")
+				.font(.footnote)
+				.foregroundStyle(.secondary)
+
+			Divider()
+
+			Toggle(isOn: $settings.stopwatchShowsPaceRing) {
+				Label("Pace Ring", systemImage: "circle.dashed")
+			}
+			Text("The outer ring compares your current lap to your best one.")
+				.font(.footnote)
+				.foregroundStyle(.secondary)
+		}
+		.tint(Theme.accent)
+		.glassCard()
+	}
+
+	private var myCityCard: some View {
+		VStack(alignment: .leading, spacing: 12) {
+			Label("My City", systemImage: "location.fill")
+				.font(.headline)
+
+			HStack {
+				Text(LocalTime.currentCity)
+					.font(.title3.weight(.semibold))
+				Spacer()
+				if settings.homeCityName != nil {
+					Button("Reset") {
+						withAnimation(.snappy) { settings.clearHomeCity() }
+					}
+					.glassButton()
+				}
+			}
+
+			Text(settings.homeCityName == nil
+				 ? "Search for your city in World Clock › + and choose Set as My City."
+				 : "Shown beside your local time while you're in its time zone. Elsewhere, ClockIt names your time zone's city.")
+				.font(.footnote)
+				.foregroundStyle(.secondary)
+		}
+		.glassCard()
 	}
 
 	private var timerStyleCard: some View {
@@ -134,7 +211,7 @@ struct SettingsView: View {
 						}
 					}
 					.buttonStyle(.plain)
-					.glassEffect(isSelected ? .regular.tint(Theme.accent.opacity(0.15)).interactive() : .regular.interactive(), in: .rect(cornerRadius: 20))
+					.softGlass(isSelected ? .regular.tint(Theme.accent.opacity(0.15)).interactive() : .regular.interactive(), in: .rect(cornerRadius: 20))
 					.accessibilityAddTraits(isSelected ? .isSelected : [])
 				}
 			}
@@ -177,19 +254,20 @@ struct SettingsView: View {
 
 extension View {
 	/// Adds a gear button to the navigation bar that opens Settings.
-	func settingsButton() -> some View {
-		modifier(SettingsButton())
+	func settingsButton(section: SettingsSection = .general) -> some View {
+		modifier(SettingsButton(section: section))
 	}
 }
 
 
 private struct SettingsButton: ViewModifier {
+	let section: SettingsSection
 	@State private var showingSettings = false
 
 	func body(content: Content) -> some View {
 		content
 			.toolbar {
-				ToolbarItem(placement: .topBarTrailing) {
+				ToolbarItem(placement: .barTrailing) {
 					Button {
 						showingSettings = true
 					} label: {
@@ -199,7 +277,7 @@ private struct SettingsButton: ViewModifier {
 				}
 			}
 			.sheet(isPresented: $showingSettings) {
-				SettingsView()
+				SettingsView(section: section)
 			}
 	}
 }

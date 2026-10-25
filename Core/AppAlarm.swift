@@ -9,7 +9,7 @@ import Foundation
 
 
 
-struct AppAlarm: Identifiable, Codable {
+struct AppAlarm: Identifiable, Codable, Equatable {
 	let id: UUID
 	var label: String
 	var hour: Int

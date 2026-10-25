@@ -40,13 +40,13 @@ struct StopwatchHistoryView: View {
 				}
 			}
 			.navigationTitle("History")
-			.navigationBarTitleDisplayMode(.inline)
+			.inlineNavigationTitle()
 			.toolbar {
 				ToolbarItem(placement: .confirmationAction) {
 					Button("Done") { dismiss() }
 				}
 				if !store.history.isEmpty {
-					ToolbarItem(placement: .topBarLeading) {
+					ToolbarItem(placement: .barLeading) {
 						Button("Clear", role: .destructive) { confirmingClear = true }
 					}
 				}
@@ -126,9 +126,9 @@ private struct SessionDetailView: View {
 		}
 		.background(AuroraBackground())
 		.navigationTitle("Run")
-		.navigationBarTitleDisplayMode(.inline)
+		.inlineNavigationTitle()
 		.toolbar {
-			ToolbarItem(placement: .topBarTrailing) {
+			ToolbarItem(placement: .barTrailing) {
 				ShareLink(item: summary)
 			}
 		}

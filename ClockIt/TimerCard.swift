@@ -19,13 +19,13 @@ struct TimerCard: View {
 		let color = ClockItPalette.color(named: timer.colorName)
 		let style = AppSettings.shared.timerStyle
 
-		TimelineView(.animation(minimumInterval: style == .liquid ? 1.0 / 30 : 1.0 / 10, paused: !timer.isRunning)) { context in
+		TimelineView(.animation(minimumInterval: style.isAnimated ? 1.0 / 30 : 1.0 / 10, paused: !timer.isRunning)) { context in
 			let remaining = timer.remaining(at: context.date)
 			let elapsed = timer.progress(at: context.date)
 			let isDone = timer.isRunning && remaining <= 0
 
 			HStack(alignment: .top, spacing: 16) {
-				visual(style: style, remaining: remaining, elapsed: elapsed, isDone: isDone, color: color)
+				visual(style: style, remaining: remaining, elapsed: elapsed, isDone: isDone, color: color, phase: context.date.timeIntervalSinceReferenceDate)
 
 				VStack(alignment: .leading, spacing: 2) {
 					Text(isDone ? timer.kind.doneText : remaining.timerText)
@@ -67,43 +67,39 @@ struct TimerCard: View {
 						.clipShape(.rect(cornerRadius: Theme.cornerRadius))
 				}
 			}
-			.glassEffect(.regular.tint(color.opacity(0.12)), in: .rect(cornerRadius: Theme.cornerRadius))
+			.softGlass(.regular.tint(color.opacity(0.12)), in: .rect(cornerRadius: Theme.cornerRadius))
 		}
 		.sensoryFeedback(.impact(weight: .light), trigger: timer.isRunning)
 	}
 
 	@ViewBuilder
-	private func visual(style: TimerStyle, remaining: TimeInterval, elapsed: Double, isDone: Bool, color: Color) -> some View {
-		switch style {
-		case .ring:
-			TimerRing(remainingFraction: 1 - elapsed, color: color, symbol: timer.kind.symbol, isDone: isDone)
-				.frame(width: 64, height: 64)
-		case .pie:
-			TimerPie(elapsedFraction: elapsed, color: color, symbol: timer.kind.symbol, isDone: isDone)
-				.frame(width: 64, height: 64)
-		case .analog:
-			// Tap the face to pause or resume.
-			AnalogTimerFace(remaining: remaining, color: color)
-				.frame(width: 96, height: 96)
-				.contentShape(Circle())
-				.onTapGesture {
-					guard !isDone else { return }
-					timer.isRunning ? onPause() : onResume()
-				}
-				.accessibilityLabel(timer.isRunning ? "Pause" : "Resume")
-				.accessibilityAddTraits(.isButton)
-		case .liquid:
+	private func visual(style: TimerStyle, remaining: TimeInterval, elapsed: Double, isDone: Bool, color: Color, phase: Double) -> some View {
+		if style == .liquid {
+			// The whole card is the liquid, so just show the category here.
 			Image(systemName: isDone ? "bell.and.waves.left.and.right.fill" : timer.kind.symbol)
 				.font(.system(size: 20, weight: .semibold))
 				.foregroundStyle(color)
 				.symbolEffect(.wiggle, options: .repeat(.continuous), isActive: isDone)
 				.frame(width: 52, height: 52)
-				.glassEffect(.regular, in: .circle)
+				.softGlass(.regular, in: .circle)
+		} else {
+			let size = TimerGraphic.cardSize(for: style)
+			TimerGraphic(
+				style: style,
+				remaining: remaining,
+				elapsed: elapsed,
+				color: color,
+				symbol: timer.kind.symbol,
+				isRunning: timer.isRunning,
+				isDone: isDone,
+				phase: phase
+			)
+			.frame(width: size.width, height: size.height)
 		}
 	}
 
 	private func controls(isDone: Bool, color: Color) -> some View {
-		GlassEffectContainer(spacing: 8) {
+		GlassGroup(spacing: 8) {
 			VStack(spacing: 8) {
 				if !isDone {
 					Button(action: timer.isRunning ? onPause : onResume) {
@@ -113,7 +109,7 @@ struct TimerCard: View {
 							.frame(width: 44, height: 44)
 					}
 					.buttonStyle(.plain)
-					.glassEffect(.regular.tint(color).interactive(), in: .circle)
+					.softGlass(.regular.tint(color).interactive(), in: .circle)
 					.accessibilityLabel(timer.isRunning ? "Pause" : "Resume")
 				}
 
@@ -124,7 +120,7 @@ struct TimerCard: View {
 						.frame(width: 44, height: 44)
 				}
 				.buttonStyle(.plain)
-				.glassEffect(.regular.interactive(), in: .circle)
+				.softGlass(.regular.interactive(), in: .circle)
 				.accessibilityLabel(isDone ? "Stop" : "Cancel")
 			}
 		}

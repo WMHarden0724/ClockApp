@@ -53,16 +53,16 @@ struct AlarmsView: View {
 						Button("New Alarm") {
 							editing = EditorTarget(alarm: nil)
 						}
-						.buttonStyle(.glassProminent)
+						.glassProminentButton()
 					}
 				}
 			}
 			.animation(.smooth, value: store.alarms.map(\.id))
 			.navigationTitle("Alarms")
 			.localTimeSubtitle()
-			.settingsButton()
+			.settingsButton(section: .alarms)
 			.toolbar {
-				ToolbarItem(placement: .topBarTrailing) {
+				ToolbarItem(placement: .barTrailing) {
 					Button {
 						editing = EditorTarget(alarm: nil)
 					} label: {

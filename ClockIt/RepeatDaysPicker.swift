@@ -13,7 +13,7 @@ struct RepeatDaysPicker: View {
 	private let days = Calendar.current.veryShortWeekdaySymbols
 
 	var body: some View {
-		GlassEffectContainer(spacing: 6) {
+		GlassGroup(spacing: 6) {
 			HStack(spacing: 6) {
 				ForEach(1...7, id: \.self) { day in
 					let isOn = selected.contains(day)
@@ -31,7 +31,7 @@ struct RepeatDaysPicker: View {
 							.frame(width: 38, height: 38)
 					}
 					.buttonStyle(.plain)
-					.glassEffect(isOn ? .regular.tint(Theme.accent).interactive() : .regular.interactive(), in: .circle)
+					.softGlass(isOn ? .regular.tint(Theme.accent).interactive() : .regular.interactive(), in: .circle)
 					.accessibilityLabel(Calendar.current.weekdaySymbols[day - 1])
 					.accessibilityAddTraits(isOn ? .isSelected : [])
 				}

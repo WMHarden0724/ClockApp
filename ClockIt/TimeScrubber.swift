@@ -30,7 +30,7 @@ struct TimeScrubber: View {
 					Button("Now") {
 						withAnimation(.spring) { offsetMinutes = 0 }
 					}
-					.buttonStyle(.glass)
+					.glassButton()
 					.controlSize(.small)
 					.transition(.scale.combined(with: .opacity))
 				}
@@ -41,7 +41,7 @@ struct TimeScrubber: View {
 		}
 		.padding(.horizontal, 20)
 		.padding(.vertical, 14)
-		.glassEffect(.regular, in: .rect(cornerRadius: Theme.cornerRadius))
+		.softGlass(.regular, in: .rect(cornerRadius: Theme.cornerRadius))
 		.animation(.snappy, value: offsetMinutes == 0)
 		.sensoryFeedback(.selection, trigger: offsetMinutes)
 		.accessibilityElement()

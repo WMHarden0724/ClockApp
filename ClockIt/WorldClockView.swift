@@ -18,21 +18,33 @@ struct WorldClockView: View {
 			TimelineView(.everyMinute) { context in
 				let date = context.date.addingTimeInterval(offsetMinutes * 60)
 
-				List {
-					ForEach(store.cities) { city in
-						WorldClockRow(city: city, date: date)
-							.glassListRow()
+				Group {
+					#if os(visionOS)
+					ClockWallView(cities: store.cities, offsetMinutes: offsetMinutes) { city in
+						store.deleteCity(id: city.id)
 					}
-					.onMove(perform: store.moveCities)
-					.onDelete(perform: store.deleteCities)
+					#elseif os(macOS)
+					WorldClockMorphView(cities: store.cities, date: date, offsetMinutes: offsetMinutes) { city in
+						store.deleteCity(id: city.id)
+					}
+					#else
+					List {
+						ForEach(store.cities) { city in
+							WorldClockRow(city: city, date: date)
+								.glassListRow()
+						}
+						.onMove(perform: store.moveCities)
+						.onDelete(perform: store.deleteCities)
+					}
+					.listStyle(.plain)
+					#endif
 				}
-				.listStyle(.plain)
 				.scrollContentBackground(.hidden)
-				.navigationSubtitle(
+				.navigationSubtitleIfAvailable(
 					Text("\(LocalTime.label(for: date, offsetMinutes: offsetMinutes)) · \(LocalTime.currentCity)")
 				)
 				.overlay {
-					if store.cities.isEmpty {
+					if store.cities.isEmpty && !Self.showsClockWall {
 						ContentUnavailableView(
 							"No Cities",
 							systemImage: "globe",
@@ -50,25 +62,36 @@ struct WorldClockView: View {
 				}
 			}
 			.navigationTitle("World Clock")
-			.settingsButton()
+			.settingsButton(section: .worldClock)
 			.toolbar {
-				ToolbarItem(placement: .topBarTrailing) {
+				ToolbarItem(placement: .barTrailing) {
 					Button {
 						showingAddCity = true
 					} label: {
 						Image(systemName: "plus")
 					}
 				}
-				ToolbarItem(placement: .topBarLeading) {
+				#if os(iOS)
+				ToolbarItem(placement: .barLeading) {
 					EditButton()
 				}
+				#endif
 			}
 			.sheet(isPresented: $showingAddCity) {
-				AddCityView(existingIdentifiers: Set(store.cities.map(\.timeZoneIdentifier))) { city in
+				AddCityView(existingCities: store.cities) { city in
 					store.addCity(city)
 				}
 			}
 		}
+	}
+
+	/// Vision Pro shows the government-office style clock wall, which always has your local clock.
+	private static var showsClockWall: Bool {
+		#if os(visionOS)
+		true
+		#else
+		false
+		#endif
 	}
 }
 

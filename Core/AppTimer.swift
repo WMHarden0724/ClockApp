@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct AppTimer: Identifiable, Codable {
+struct AppTimer: Identifiable, Codable, Equatable {
 	let id: UUID
 	var label: String
 	var duration: TimeInterval
@@ -18,6 +18,7 @@ struct AppTimer: Identifiable, Codable {
 	var createdAt: Date
 	var category: TimerCategory? // nil for timers saved before categories existed
 	var notes: String?
+	var originDevice: String? // SyncHub.deviceID of the device that started it
 
 	var isRunning: Bool { endDate != nil }
 
@@ -71,7 +72,7 @@ struct TimerPreset: Codable, Hashable, Identifiable {
 }
 
 
-struct StopwatchState: Codable {
+struct StopwatchState: Codable, Equatable {
 	var startDate: Date? // set while running
 	var accumulated: TimeInterval = 0 // time banked before the current run
 	var laps: [TimeInterval] = [] // completed lap durations, oldest first
@@ -103,6 +104,14 @@ struct StopwatchSession: Codable, Identifiable {
 	let date: Date
 	let total: TimeInterval
 	let laps: [TimeInterval]
+}
+
+
+/// A run cleared by Reset, held so the reset can be undone.
+struct StopwatchReset: Equatable {
+	let id: UUID
+	let state: StopwatchState
+	let sessionID: UUID
 }
 
 

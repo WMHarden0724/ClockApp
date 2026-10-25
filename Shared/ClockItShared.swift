@@ -5,14 +5,18 @@
 //  Created by Wesley Harden on 10/25/26.
 //
 
+#if os(iOS)
 import AlarmKit
 import AppIntents
+#endif
 import SwiftUI
 
 
-// Compiled into both the app and the widget extension.
+// Compiled into the app (every platform), the widget extension and the Watch app.
+// AlarmKit pieces exist only on iPhone and iPad.
 
 
+#if os(iOS)
 /// Travels with every AlarmKit alarm so the Live Activity knows what it's showing.
 nonisolated struct ClockItAlarmMetadata: AlarmMetadata {
 	enum Kind: String, Codable, Hashable, Sendable {
@@ -25,6 +29,7 @@ nonisolated struct ClockItAlarmMetadata: AlarmMetadata {
 	var symbolName: String = "timer"
 	var uses24Hour: Bool? = nil // the app's 12/24-hour setting at schedule time; nil follows the system
 }
+#endif
 
 
 /// Formats clock times honoring ClockIt's 12/24-hour setting.
@@ -77,6 +82,8 @@ nonisolated enum ClockItPalette {
 
 // MARK: - Live Activity buttons
 
+#if os(iOS)
+
 struct PauseAlarmIntent: LiveActivityIntent {
 	static let title: LocalizedStringResource = "Pause Timer"
 	static let isDiscoverable = false
@@ -123,3 +130,4 @@ struct CancelAlarmIntent: LiveActivityIntent {
 		return .result()
 	}
 }
+#endif

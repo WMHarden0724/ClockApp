@@ -19,6 +19,11 @@ struct TimersView: View {
 	@State private var notes = ""
 	@State private var childAge = 5
 	@State private var colorName = ClockItPalette.defaultName
+	@State private var focused: FocusTarget?
+
+	private struct FocusTarget: Identifiable {
+		let id: UUID
+	}
 
 	private var duration: TimeInterval {
 		TimeInterval(hours * 3600 + minutes * 60 + seconds)
@@ -37,6 +42,8 @@ struct TimersView: View {
 							onResume: { store.resume(id: timer.id) },
 							onCancel: { store.cancel(id: timer.id) }
 						)
+						.contentShape(.rect(cornerRadius: Theme.cornerRadius))
+						.onTapGesture { focused = FocusTarget(id: timer.id) }
 						.transition(.scale(scale: 0.9).combined(with: .opacity))
 					}
 
@@ -48,11 +55,14 @@ struct TimersView: View {
 				.animation(.smooth, value: store.timers.map(\.id))
 				.animation(.smooth, value: category)
 			}
-			.scrollDismissesKeyboard(.interactively)
+			.dismissKeyboardOnScroll()
 			.background(AuroraBackground())
 			.navigationTitle("Timers")
 			.localTimeSubtitle()
-			.settingsButton()
+			.settingsButton(section: .timers)
+			.fullScreenOrSheet(item: $focused) { target in
+				TimerFocusView(timerID: target.id)
+			}
 			.alert("Timer Not Started", isPresented: Binding(
 				get: { store.errorMessage != nil },
 				set: { if !$0 { store.errorMessage = nil } }
@@ -82,7 +92,7 @@ struct TimersView: View {
 				.padding(.leading, 4)
 
 			ScrollView(.horizontal) {
-				GlassEffectContainer(spacing: 8) {
+				GlassGroup(spacing: 8) {
 					HStack(spacing: 8) {
 						ForEach(TimerCategory.allCases) { option in
 							let isSelected = option == category
@@ -98,7 +108,7 @@ struct TimersView: View {
 									.padding(.vertical, 10)
 							}
 							.buttonStyle(.plain)
-							.glassEffect(isSelected ? .regular.tint(color).interactive() : .regular.interactive(), in: .capsule)
+							.softGlass(isSelected ? .regular.tint(color).interactive() : .regular.interactive(), in: .capsule)
 							.accessibilityAddTraits(isSelected ? .isSelected : [])
 						}
 					}
@@ -141,13 +151,13 @@ struct TimersView: View {
 			TextField("Label", text: $label, prompt: Text(category.labelPrompt))
 				.padding(.horizontal, 16)
 				.padding(.vertical, 12)
-				.glassEffect(.regular, in: .capsule)
+				.softGlass(.regular, in: .capsule)
 
 			TextField("Notes", text: $notes, prompt: Text(category.notesPrompt), axis: .vertical)
 				.lineLimit(1...4)
 				.padding(.horizontal, 16)
 				.padding(.vertical, 12)
-				.glassEffect(.regular, in: .rect(cornerRadius: 20))
+				.softGlass(.regular, in: .rect(cornerRadius: 20))
 
 			swatches
 
@@ -161,7 +171,7 @@ struct TimersView: View {
 					.frame(maxWidth: .infinity)
 					.padding(.vertical, 6)
 			}
-			.buttonStyle(.glassProminent)
+			.glassProminentButton()
 			.tint(color)
 			.disabled(duration == 0)
 			.sensoryFeedback(.start, trigger: store.timers.count) { old, new in new > old }
@@ -191,7 +201,7 @@ struct TimersView: View {
 						.padding(.vertical, 10)
 					}
 					.buttonStyle(.plain)
-					.glassEffect(isSelected ? .regular.tint(tint).interactive() : .regular.interactive(), in: .rect(cornerRadius: 18))
+					.softGlass(isSelected ? .regular.tint(tint).interactive() : .regular.interactive(), in: .rect(cornerRadius: 18))
 				}
 			}
 			.padding(.vertical, 2)
@@ -206,7 +216,7 @@ struct TimersView: View {
 				.font(.title2)
 				.foregroundStyle(tint)
 				.frame(width: 44, height: 44)
-				.glassEffect(.regular.tint(tint.opacity(0.2)), in: .circle)
+				.softGlass(.regular.tint(tint.opacity(0.2)), in: .circle)
 
 			VStack(alignment: .leading, spacing: 2) {
 				Text("\(childAge) years old")
@@ -256,7 +266,7 @@ struct TimersView: View {
 				Text("\(value)").font(Theme.clockFont(22, weight: .regular)).tag(value)
 			}
 		}
-		.pickerStyle(.wheel)
+		.wheelPickerStyleIfAvailable()
 		.overlay(alignment: .trailing) {
 			Text(unit)
 				.font(.subheadline.weight(.medium))
@@ -282,7 +292,7 @@ struct TimersView: View {
 				.padding(.leading, 4)
 
 			ScrollView(.horizontal) {
-				GlassEffectContainer(spacing: 8) {
+				GlassGroup(spacing: 8) {
 					HStack(spacing: 8) {
 						ForEach(store.quickStarts) { preset in
 							Button {
@@ -308,7 +318,7 @@ struct TimersView: View {
 								.padding(.vertical, 12)
 							}
 							.buttonStyle(.plain)
-							.glassEffect(.regular.tint(ClockItPalette.color(named: preset.colorName).opacity(0.25)).interactive(), in: .capsule)
+							.softGlass(.regular.tint(ClockItPalette.color(named: preset.colorName).opacity(0.25)).interactive(), in: .capsule)
 						}
 					}
 					.padding(.horizontal, 4)

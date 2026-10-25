@@ -92,7 +92,7 @@ struct TimeDial: View {
 					.font(.system(size: 16, weight: .semibold))
 					.foregroundStyle(isDay ? Color.orange : Theme.accent)
 					.frame(width: 44, height: 44)
-					.glassEffect(.regular.interactive(), in: .circle)
+					.softGlass(.regular.interactive(), in: .circle)
 					.position(point(for: fraction, radius: radius, center: center))
 			}
 			.frame(width: geo.size.width, height: geo.size.height)
