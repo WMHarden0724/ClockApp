@@ -182,6 +182,44 @@ struct SettingsView: View {
 	}
 
 	private var timerStyleCard: some View {
+		VStack(spacing: 16) {
+			timerAlertsCard
+			timerStyleGrid
+		}
+	}
+
+	private var timerAlertsCard: some View {
+		VStack(alignment: .leading, spacing: 12) {
+			Picker(selection: $settings.timerHeadsUp) {
+				ForEach(AppSettings.TimerHeadsUp.allCases) { option in
+					Text(option.title).tag(option)
+				}
+			} label: {
+				Label("Heads-Up", systemImage: "bell.badge")
+			}
+			Text("A gentle notification before a timer ends, so you can stir the pasta or flip the steak.")
+				.font(.footnote)
+				.foregroundStyle(.secondary)
+
+			#if os(macOS)
+			Divider()
+
+			Toggle(isOn: $settings.showsMenuBarTimer) {
+				Label("Show in Menu Bar", systemImage: "menubar.rectangle")
+			}
+			.tint(Theme.accent)
+			Text("Shows the next timer's time left in the menu bar, with your saved timers a click away.")
+				.font(.footnote)
+				.foregroundStyle(.secondary)
+			#endif
+		}
+		.glassCard()
+		.onChange(of: settings.timerHeadsUp) {
+			timerStore.refreshNotifications()
+		}
+	}
+
+	private var timerStyleGrid: some View {
 		VStack(alignment: .leading, spacing: 14) {
 			Label("Timer Style", systemImage: "timer")
 				.font(.headline)

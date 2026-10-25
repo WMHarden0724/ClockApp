@@ -24,9 +24,9 @@ nonisolated enum StopwatchCommand: Sendable {
 #if os(iOS)
 /// Live Activity intents run in the app's process, even when the tap comes from the
 /// Lock Screen, Dynamic Island or Control Center, so they reach the real stopwatch.
-typealias StopwatchIntent = LiveActivityIntent
+typealias InAppIntent = LiveActivityIntent
 #else
-typealias StopwatchIntent = AppIntent
+typealias InAppIntent = AppIntent
 #endif
 
 
@@ -34,12 +34,12 @@ private func run(_ command: StopwatchCommand) async -> String {
 	#if WIDGET_EXTENSION
 	return ""
 	#else
-	return await TimerStore.shared.perform(command)
+	return TimerStore.shared.perform(command)
 	#endif
 }
 
 
-struct StartStopwatchIntent: StopwatchIntent {
+struct StartStopwatchIntent: InAppIntent {
 	static let title: LocalizedStringResource = "Start Stopwatch"
 	static let description = IntentDescription("Starts the stopwatch, or picks up where it was stopped.")
 
@@ -49,7 +49,7 @@ struct StartStopwatchIntent: StopwatchIntent {
 }
 
 
-struct StopStopwatchIntent: StopwatchIntent {
+struct StopStopwatchIntent: InAppIntent {
 	static let title: LocalizedStringResource = "Stop Stopwatch"
 	static let description = IntentDescription("Stops the stopwatch without clearing it.")
 
@@ -59,7 +59,7 @@ struct StopStopwatchIntent: StopwatchIntent {
 }
 
 
-struct ToggleStopwatchIntent: StopwatchIntent {
+struct ToggleStopwatchIntent: InAppIntent {
 	static let title: LocalizedStringResource = "Start or Stop Stopwatch"
 	static let description = IntentDescription("Starts the stopwatch if it's stopped, and stops it if it's running. Handy on the Action Button.")
 
@@ -69,7 +69,7 @@ struct ToggleStopwatchIntent: StopwatchIntent {
 }
 
 
-struct LapStopwatchIntent: StopwatchIntent {
+struct LapStopwatchIntent: InAppIntent {
 	static let title: LocalizedStringResource = "Record Lap"
 	static let description = IntentDescription("Records a lap on the running stopwatch.")
 
@@ -79,7 +79,7 @@ struct LapStopwatchIntent: StopwatchIntent {
 }
 
 
-struct ResetStopwatchIntent: StopwatchIntent {
+struct ResetStopwatchIntent: InAppIntent {
 	static let title: LocalizedStringResource = "Reset Stopwatch"
 	static let description = IntentDescription("Clears the stopwatch and saves the run to History.")
 

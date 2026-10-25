@@ -19,6 +19,7 @@ struct ClockItWidgetsBundle: WidgetBundle {
 		StopwatchLiveActivity()
 		StopwatchToggleControl()
 		StopwatchLapControl()
+		StartTimerControl()
 	}
 }
 
@@ -212,7 +213,7 @@ private struct ProgressRing: View {
 }
 
 
-/// Pause / resume and cancel, for timers only. Snoozed alarms are managed from the alert itself.
+/// +1 minute, pause / resume and cancel, for timers only. Snoozed alarms are managed from the alert itself.
 private struct ControlButtons: View {
 	let attributes: AlarmAttributes<ClockItAlarmMetadata>
 	let state: AlarmPresentationState
@@ -222,6 +223,7 @@ private struct ControlButtons: View {
 			HStack(spacing: 8) {
 				switch state.mode {
 				case .countdown:
+					circleButton(intent: AddMinuteToTimerIntent(alarmID: state.alarmID), symbol: "goforward.plus", prominent: false)
 					circleButton(intent: PauseAlarmIntent(alarmID: state.alarmID), symbol: "pause.fill", prominent: true)
 				case .paused:
 					circleButton(intent: ResumeAlarmIntent(alarmID: state.alarmID), symbol: "play.fill", prominent: true)

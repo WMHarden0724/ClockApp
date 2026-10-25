@@ -11,6 +11,7 @@ import SwiftUI
 struct ClockItApp: App {
 	@State private var store = ClockStore()
 	@State private var timerStore = TimerStore.shared
+	@State private var settings = AppSettings.shared
 	@Environment(\.scenePhase) private var scenePhase
 
 	init() {
@@ -45,6 +46,13 @@ struct ClockItApp: App {
 				.tint(Theme.accent)
 				.frame(width: 520, height: 620)
 		}
+
+		MenuBarExtra(isInserted: $settings.showsMenuBarTimer) {
+			MenuBarTimerMenu()
+				.environment(timerStore)
+		} label: {
+			MenuBarTimerLabel(store: timerStore)
+		}
 		#endif
     }
 }
@@ -74,7 +82,7 @@ struct ContentView: View {
 			}
 			
 			Tab("Timers", systemImage: "timer", value: .timers) {
-				TimersView()
+				TimersView(isSelected: selection == .timers)
 			}
 		}
 		// A sidebar on iPad, Mac and Vision Pro; tabs on iPhone.

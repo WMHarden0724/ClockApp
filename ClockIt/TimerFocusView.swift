@@ -29,9 +29,11 @@ struct TimerFocusView: View {
 		let style = AppSettings.shared.timerStyle
 
 		return TimelineView(.animation(minimumInterval: style.isAnimated ? 1.0 / 30 : 1.0 / 10, paused: !timer.isRunning)) { context in
-			let remaining = timer.remaining(at: context.date)
-			let elapsed = timer.progress(at: context.date)
-			let isDone = timer.isRunning && remaining <= 0
+			let totalRemaining = timer.remaining(at: context.date)
+			let isDone = timer.isRunning && totalRemaining <= 0
+			let step = isDone ? nil : timer.stepStatus(at: context.date)
+			let remaining = step?.remaining ?? totalRemaining
+			let elapsed = step?.progress ?? timer.progress(at: context.date)
 
 			VStack(spacing: 24) {
 				HStack {
@@ -63,6 +65,13 @@ struct TimerFocusView: View {
 					.accessibilityLabel(timer.isRunning ? "Pause" : "Resume")
 
 				VStack(spacing: 6) {
+					if let step {
+						Text(step.step.label.isEmpty ? "Step \(step.index + 1) of \(step.count)" : "\(step.step.label) · \(step.index + 1) of \(step.count)")
+							.font(.title2.weight(.semibold))
+							.foregroundStyle(color)
+							.contentTransition(.opacity)
+					}
+
 					Text(isDone ? timer.kind.doneText : remaining.timerText)
 						.font(Theme.clockFont(80, weight: .thin))
 						.monospacedDigit()
@@ -73,6 +82,8 @@ struct TimerFocusView: View {
 					Group {
 						if isDone {
 							Text("Finished")
+						} else if let next = step?.next {
+							Text("Next: \(next.label.isEmpty ? "Step" : next.label) \(next.duration.timerText) · \(totalRemaining.timerText) left")
 						} else if let end = timer.endDate {
 							Text("Ends \(end.timeText)")
 						} else {
@@ -92,6 +103,20 @@ struct TimerFocusView: View {
 				}
 
 				Spacer(minLength: 0)
+
+				GlassGroup(spacing: 8) {
+					HStack(spacing: 8) {
+						pillButton("+1 min", systemImage: "plus", color: color) {
+							store.addTime(60, to: timer.id)
+						}
+						if isDone {
+							pillButton("Repeat", systemImage: "repeat", color: color) {
+								store.restart(id: timer.id)
+								dismiss()
+							}
+						}
+					}
+				}
 
 				controls(timer: timer, isDone: isDone, color: color)
 			}
@@ -123,6 +148,18 @@ struct TimerFocusView: View {
 			large: true
 		)
 		.frame(width: card.width * scale, height: card.height * scale)
+	}
+
+	private func pillButton(_ title: String, systemImage: String, color: Color, action: @escaping () -> Void) -> some View {
+		Button(action: action) {
+			Label(title, systemImage: systemImage)
+				.font(.headline)
+				.foregroundStyle(color)
+				.padding(.horizontal, 18)
+				.padding(.vertical, 12)
+		}
+		.buttonStyle(.plain)
+		.softGlass(.regular.interactive(), in: .capsule)
 	}
 
 	private func controls(timer: AppTimer, isDone: Bool, color: Color) -> some View {

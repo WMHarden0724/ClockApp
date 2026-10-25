@@ -6,6 +6,7 @@
 //
 
 #if os(iOS)
+import ActivityKit
 import AlarmKit
 #endif
 import SwiftUI
@@ -97,7 +98,8 @@ enum AlarmScheduler {
 		)
 		let configuration = AlarmManager.AlarmConfiguration(
 			countdownDuration: Alarm.CountdownDuration(preAlert: timer.remaining, postAlert: timer.duration),
-			attributes: attributes
+			attributes: attributes,
+			sound: timer.sound.fileName.map { .named($0) } ?? .default
 		)
 
 		do {

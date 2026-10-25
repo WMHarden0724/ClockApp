@@ -28,10 +28,27 @@ struct WatchTimersView: View {
 					}
 				}
 
+				if !store.saved.isEmpty {
+					Section("Saved") {
+						ForEach(store.saved) { preset in
+							presetButton(preset)
+						}
+					}
+				}
+
 				Section("Start") {
-					ForEach(store.quickStarts) { preset in
+					ForEach(store.quickStarts.filter { !store.isSaved($0) }) { preset in
+						presetButton(preset)
+					}
+				}
+			}
+			.navigationTitle("Timers")
+		}
+	}
+
+	private func presetButton(_ preset: TimerPreset) -> some View {
 						Button {
-							store.start(duration: preset.duration, label: preset.label, category: preset.kind, colorName: preset.colorName)
+							store.start(preset)
 						} label: {
 							HStack(spacing: 10) {
 								Image(systemName: preset.kind.symbol)
@@ -48,11 +65,6 @@ struct WatchTimersView: View {
 								}
 							}
 						}
-					}
-				}
-			}
-			.navigationTitle("Timers")
-		}
 	}
 }
 
@@ -122,6 +134,13 @@ struct WatchTimerDetail: View {
 						} label: {
 							Image(systemName: isDone ? "stop.fill" : "xmark")
 						}
+
+						Button {
+							store.addTime(60, to: timer.id)
+						} label: {
+							Image(systemName: "goforward.plus")
+						}
+						.accessibilityLabel("Add 1 minute")
 
 						if !isDone {
 							Button {

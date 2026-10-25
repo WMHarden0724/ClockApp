@@ -16,6 +16,7 @@ enum SyncChannel: String, CaseIterable {
 	case clock   // alarms and world clock cities
 	case timers  // running and paused timers
 	case stopwatch // the stopwatch and its saved runs
+	case timerLibrary // saved timers and timer history
 }
 
 

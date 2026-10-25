@@ -19,8 +19,18 @@ struct AppTimer: Identifiable, Codable, Equatable {
 	var category: TimerCategory? // nil for timers saved before categories existed
 	var notes: String?
 	var originDevice: String? // SyncHub.deviceID of the device that started it
+	var steps: [TimerStep]? // a sequence; `duration` is their total
 
 	var isRunning: Bool { endDate != nil }
+
+	var sound: TimerSound { TimerSound(rawValue: soundName) ?? .standard }
+
+	var isSequence: Bool { !(steps ?? []).isEmpty }
+
+	/// Starts the same timer again.
+	var preset: TimerPreset {
+		TimerPreset(duration: duration, label: label, colorName: colorName, category: category, soundName: soundName, steps: steps)
+	}
 
 	var kind: TimerCategory { category ?? .general }
 
@@ -40,6 +50,39 @@ struct AppTimer: Identifiable, Codable, Equatable {
 		return 1.0 - (remaining(at: date) / duration)
 	}
 
+	/// Where a sequence is, worked out from elapsed time so every device agrees.
+	func stepStatus(at date: Date) -> TimerStepStatus? {
+		guard let steps, !steps.isEmpty else { return nil }
+		let elapsed = duration - remaining(at: date)
+		var start: TimeInterval = 0
+		for (index, step) in steps.enumerated() {
+			let end = start + step.duration
+			if elapsed < end || index == steps.count - 1 {
+				return TimerStepStatus(
+					index: index,
+					count: steps.count,
+					step: step,
+					remaining: max(0, end - elapsed),
+					next: index + 1 < steps.count ? steps[index + 1] : nil
+				)
+			}
+			start = end
+		}
+		return nil
+	}
+
+	/// When each step after the first begins, for a running sequence.
+	var stepStarts: [(index: Int, step: TimerStep, date: Date)] {
+		guard let steps, let endDate else { return [] }
+		var date = endDate.addingTimeInterval(-duration)
+		var starts: [(index: Int, step: TimerStep, date: Date)] = []
+		for (index, step) in steps.enumerated() {
+			if index > 0 { starts.append((index, step, date)) }
+			date = date.addingTimeInterval(step.duration)
+		}
+		return starts
+	}
+
 	static let sample = AppTimer(
 		id: UUID(),
 		label: "Pasta",
@@ -55,20 +98,97 @@ struct AppTimer: Identifiable, Codable, Equatable {
 }
 
 
-/// A recently used timer, offered again as a one-tap quick start.
+/// A timer to start again: a recent one offered as a quick start, or one you saved.
 struct TimerPreset: Codable, Hashable, Identifiable {
 	var duration: TimeInterval
 	var label: String
 	var colorName: String
 	var category: TimerCategory?
+	var soundName: String? = nil
+	var steps: [TimerStep]? = nil
 
 	var kind: TimerCategory { category ?? .general }
 
-	var id: String { "\(duration)|\(label)|\(colorName)|\(kind.rawValue)" }
+	var id: String {
+		let sequence = (steps ?? []).map { "\($0.label)=\($0.duration)" }.joined(separator: ",")
+		return "\(duration)|\(label)|\(colorName)|\(kind.rawValue)|\(sequence)"
+	}
+
+	var displayName: String { label.isEmpty ? duration.durationLabel : label }
+
+	var isSequence: Bool { !(steps ?? []).isEmpty }
 
 	static let defaults: [TimerPreset] = [1, 3, 5, 10, 15, 30].map {
 		TimerPreset(duration: TimeInterval($0 * 60), label: "", colorName: ClockItPalette.defaultName, category: nil)
 	}
+}
+
+
+/// One step of a sequence, like "Sear 3:00" or "Rest 0:20".
+struct TimerStep: Codable, Hashable, Identifiable {
+	var id = UUID()
+	var label: String
+	var duration: TimeInterval
+
+	/// The steps repeated `rounds` times, each copy with its own identity.
+	static func expand(_ steps: [TimerStep], rounds: Int) -> [TimerStep] {
+		(0..<max(rounds, 1)).flatMap { _ in steps.map { TimerStep(label: $0.label, duration: $0.duration) } }
+	}
+}
+
+
+struct TimerStepStatus {
+	let index: Int
+	let count: Int
+	let step: TimerStep
+	/// Time left in this step.
+	let remaining: TimeInterval
+	let next: TimerStep?
+
+	/// Fraction of this step elapsed, 0...1.
+	var progress: Double {
+		step.duration > 0 ? 1 - remaining / step.duration : 1
+	}
+}
+
+
+/// A finished or cancelled timer, kept so you can see what you set last time and start it again.
+struct TimerRecord: Codable, Identifiable, Hashable {
+	let id: UUID
+	let preset: TimerPreset
+	let startedAt: Date
+	let endedAt: Date
+	/// False when it was cancelled before reaching zero.
+	let completed: Bool
+}
+
+
+/// The sound a timer rings with. Bundled tones live in ClockIt/Sounds.
+enum TimerSound: String, CaseIterable, Identifiable, Codable {
+	case standard = "default"
+	case chime, marimba, bell, beeps, rise, pulse
+
+	var id: String { rawValue }
+
+	var title: String {
+		switch self {
+		case .standard: "Standard"
+		case .chime: "Chime"
+		case .marimba: "Marimba"
+		case .bell: "Bell"
+		case .beeps: "Beeps"
+		case .rise: "Rise"
+		case .pulse: "Pulse"
+		}
+	}
+
+	/// nil for the system's own alert sound.
+	var fileName: String? {
+		self == .standard ? nil : "\(rawValue).wav"
+	}
+
+	/// The short cue played between the steps of a sequence.
+	static let stepCueFileName = "step.wav"
 }
 
 

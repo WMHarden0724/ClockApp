@@ -9,24 +9,79 @@ import SwiftUI
 
 
 struct TimersView: View {
+	/// Keyboard shortcuts only work while this is the selected tab.
+	var isSelected = true
+
 	@Environment(TimerStore.self) private var store
 
 	@State private var category: TimerCategory = .general
+	@State private var mode: ComposerMode = .single
+	@State private var setBy: SetBy = .length
 	@State private var hours = 0
 	@State private var minutes = 5
 	@State private var seconds = 0
+	@State private var endsAt = TimersView.defaultEndTime()
+	@State private var steps: [TimerStep] = SequenceTemplate.all[2].steps
+	@State private var rounds = 1
 	@State private var label = ""
 	@State private var notes = ""
 	@State private var childAge = 5
 	@State private var colorName = ClockItPalette.defaultName
+	@State private var sound: TimerSound = AppSettings.shared.timerSound(for: .general)
 	@State private var focused: FocusTarget?
+	@State private var showingHistory = false
+	@State private var confirmingCancelAll = false
 
 	private struct FocusTarget: Identifiable {
 		let id: UUID
 	}
 
+	enum ComposerMode: String, CaseIterable {
+		case single = "Timer"
+		case sequence = "Sequence"
+	}
+
+	enum SetBy: String, CaseIterable {
+		case length = "Length"
+		case endsAt = "Ends At"
+	}
+
 	private var duration: TimeInterval {
 		TimeInterval(hours * 3600 + minutes * 60 + seconds)
+	}
+
+	/// The sequence as it will run: every round, and no empty steps.
+	private var expandedSteps: [TimerStep] {
+		TimerStep.expand(steps.filter { $0.duration > 0 }, rounds: rounds)
+	}
+
+	/// What Start will run, worked out at the moment you press it.
+	private func startDuration(at now: Date = Date()) -> TimeInterval {
+		switch mode {
+		case .sequence:
+			return expandedSteps.reduce(0) { $0 + $1.duration }
+		case .single:
+			return setBy == .endsAt ? Self.interval(until: endsAt, from: now) : duration
+		}
+	}
+
+	/// The timer the composer describes, for saving. Ends At timers aren't saved since the time of day matters.
+	private var composedPreset: TimerPreset? {
+		guard !(mode == .single && setBy == .endsAt), startDuration() > 0 else { return nil }
+		return TimerPreset(
+			duration: startDuration(),
+			label: label,
+			colorName: colorName,
+			category: category,
+			soundName: sound.rawValue,
+			steps: mode == .sequence ? expandedSteps : nil
+		)
+	}
+
+	/// Saved timers first, then recents: the ones ⌘1–9 start on the Mac.
+	private var numberedPresets: [TimerPreset] {
+		var seen = Set<String>()
+		return (store.saved + store.quickStarts).filter { seen.insert($0.id).inserted }.prefix(9).map { $0 }
 	}
 
 	var body: some View {
@@ -35,12 +90,18 @@ struct TimersView: View {
 		NavigationStack {
 			ScrollView {
 				VStack(spacing: 16) {
+					if store.timers.count > 1 {
+						allTimersBar
+					}
+
 					ForEach(store.timers) { timer in
 						TimerCard(
 							timer: timer,
 							onPause: { store.pause(id: timer.id) },
 							onResume: { store.resume(id: timer.id) },
-							onCancel: { store.cancel(id: timer.id) }
+							onCancel: { store.cancel(id: timer.id) },
+							onAddMinute: { store.addTime(60, to: timer.id) },
+							onRepeat: { store.restart(id: timer.id) }
 						)
 						.contentShape(.rect(cornerRadius: Theme.cornerRadius))
 						.onTapGesture { focused = FocusTarget(id: timer.id) }
@@ -49,17 +110,36 @@ struct TimersView: View {
 
 					categoryPicker
 					composer
-					quickStart
+
+					if !store.saved.isEmpty {
+						presetRow(title: "Saved", presets: store.saved, isSavedRow: true)
+					}
+					presetRow(title: "Quick Start", presets: store.quickStarts.filter { !store.isSaved($0) }, isSavedRow: false)
 				}
 				.padding(16)
 				.animation(.smooth, value: store.timers.map(\.id))
 				.animation(.smooth, value: category)
+				.animation(.smooth, value: mode)
+				.animation(.smooth, value: store.saved)
 			}
 			.dismissKeyboardOnScroll()
 			.background(AuroraBackground())
 			.navigationTitle("Timers")
 			.localTimeSubtitle()
 			.settingsButton(section: .timers)
+			.toolbar {
+				ToolbarItem(placement: .barLeading) {
+					Button {
+						showingHistory = true
+					} label: {
+						Image(systemName: "clock.arrow.circlepath")
+					}
+					.accessibilityLabel("History")
+				}
+			}
+			.sheet(isPresented: $showingHistory) {
+				TimerHistoryView()
+			}
 			.fullScreenOrSheet(item: $focused) { target in
 				TimerFocusView(timerID: target.id)
 			}
@@ -73,14 +153,56 @@ struct TimersView: View {
 			}
 			.onChange(of: category) { _, newValue in
 				colorName = newValue.colorName
+				sound = AppSettings.shared.timerSound(for: newValue)
 				if newValue == .timeOut {
+					mode = .single
+					setBy = .length
 					setDuration(TimeInterval(childAge * 60))
 				}
 			}
 			.onChange(of: childAge) { _, age in
 				setDuration(TimeInterval(age * 60))
 			}
+			.onChange(of: sound) { _, newValue in
+				AppSettings.shared.setTimerSound(newValue, for: category)
+			}
 		}
+	}
+
+	// MARK: All timers
+
+	private var allTimersBar: some View {
+		GlassGroup(spacing: 8) {
+			HStack(spacing: 8) {
+				if store.hasRunningTimers {
+					barButton("Pause All", systemImage: "pause.fill") { store.pauseAll() }
+						.keyboardShortcut(isSelected ? KeyboardShortcut("p", modifiers: [.command, .shift]) : nil)
+						.help("Pause All (⇧⌘P)")
+				} else {
+					barButton("Resume All", systemImage: "play.fill") { store.resumeAll() }
+						.keyboardShortcut(isSelected ? KeyboardShortcut("p", modifiers: [.command, .shift]) : nil)
+						.help("Resume All (⇧⌘P)")
+				}
+
+				Spacer()
+
+				barButton("Cancel All", systemImage: "xmark") { confirmingCancelAll = true }
+					.confirmationDialog("Cancel all \(store.timers.count) timers?", isPresented: $confirmingCancelAll) {
+						Button("Cancel All Timers", role: .destructive) { store.cancelAll() }
+					}
+			}
+		}
+	}
+
+	private func barButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+		Button(action: action) {
+			Label(title, systemImage: systemImage)
+				.font(.subheadline.weight(.semibold))
+				.padding(.horizontal, 14)
+				.padding(.vertical, 10)
+		}
+		.buttonStyle(.plain)
+		.softGlass(.regular.interactive(), in: .capsule)
 	}
 
 	// MARK: Category
@@ -126,26 +248,22 @@ struct TimersView: View {
 		let color = ClockItPalette.color(named: colorName)
 
 		return VStack(spacing: 16) {
-			if !category.suggestions.isEmpty {
-				suggestions(tint: color)
-			}
-
-			if category == .timeOut {
-				timeOutAge(tint: color)
-			}
-
-			if AppSettings.shared.timerStyle == .analog {
-				AnalogTimerPicker(
-					duration: Binding(get: { duration }, set: { setDuration($0) }),
-					color: color
-				)
-			} else {
-				HStack(spacing: 0) {
-					wheel("hr", selection: $hours, range: 0..<24)
-					wheel("min", selection: $minutes, range: 0..<60)
-					wheel("sec", selection: $seconds, range: 0..<60)
+			if category != .timeOut {
+				Picker("Kind", selection: $mode.animation(.snappy)) {
+					ForEach(ComposerMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
 				}
-				.frame(height: 150)
+				.pickerStyle(.segmented)
+				.labelsHidden()
+			}
+
+			switch mode {
+			case .single:
+				singleTimer(tint: color)
+			case .sequence:
+				SequenceEditor(steps: $steps, rounds: $rounds, tint: color) { template in
+					category = template.category
+					if label.isEmpty { label = template.name }
+				}
 			}
 
 			TextField("Label", text: $label, prompt: Text(category.labelPrompt))
@@ -159,24 +277,111 @@ struct TimersView: View {
 				.padding(.vertical, 12)
 				.softGlass(.regular, in: .rect(cornerRadius: 20))
 
+			TimerSoundPicker(sound: $sound, tint: color)
+
 			swatches
 
-			Button {
-				store.start(duration: duration, label: label, notes: notes, category: category, colorName: colorName)
-				label = ""
-				notes = ""
-			} label: {
-				Label("Start \(duration > 0 ? duration.timerText : "")", systemImage: "play.fill")
-					.font(.headline)
-					.frame(maxWidth: .infinity)
-					.padding(.vertical, 6)
+			HStack(spacing: 10) {
+				startButton(tint: color)
+
+				Button {
+					if let preset = composedPreset { store.save(preset) }
+				} label: {
+					Image(systemName: composedPreset.map(store.isSaved) == true ? "bookmark.fill" : "bookmark")
+						.font(.headline)
+						.padding(.vertical, 6)
+				}
+				.glassButton()
+				.disabled(composedPreset == nil)
+				.accessibilityLabel("Save Timer")
+				.help("Save this timer")
 			}
-			.glassProminentButton()
-			.tint(color)
-			.disabled(duration == 0)
-			.sensoryFeedback(.start, trigger: store.timers.count) { old, new in new > old }
 		}
 		.glassCard()
+	}
+
+	@ViewBuilder
+	private func singleTimer(tint: Color) -> some View {
+		if category != .timeOut {
+			Picker("Set by", selection: $setBy.animation(.snappy)) {
+				ForEach(SetBy.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+			}
+			.pickerStyle(.segmented)
+			.labelsHidden()
+			.frame(maxWidth: 260)
+		}
+
+		if setBy == .endsAt && category != .timeOut {
+			VStack(spacing: 8) {
+				DatePicker("Ends at", selection: $endsAt, displayedComponents: .hourAndMinute)
+					.font(.headline)
+				TimelineView(.everyMinute) { context in
+					Text("Rings in \(Self.interval(until: endsAt, from: context.date).durationLabel)")
+						.font(.subheadline)
+						.foregroundStyle(.secondary)
+						.frame(maxWidth: .infinity, alignment: .leading)
+				}
+			}
+			.padding(.vertical, 8)
+		} else {
+			if !category.suggestions.isEmpty {
+				suggestions(tint: tint)
+			}
+
+			if category == .timeOut {
+				timeOutAge(tint: tint)
+			}
+
+			if AppSettings.shared.timerStyle == .analog {
+				AnalogTimerPicker(
+					duration: Binding(get: { duration }, set: { setDuration($0) }),
+					color: tint
+				)
+			} else {
+				HStack(spacing: 0) {
+					wheel("hr", selection: $hours, range: 0..<24)
+					wheel("min", selection: $minutes, range: 0..<60)
+					wheel("sec", selection: $seconds, range: 0..<60)
+				}
+				.frame(height: 150)
+			}
+		}
+	}
+
+	private func startButton(tint: Color) -> some View {
+		let length = startDuration()
+		let title: String = switch (mode, setBy) {
+		case (.sequence, _): "Start \(length > 0 ? length.timerText : "")"
+		case (.single, .endsAt) where category != .timeOut: "Start · Ends \(endsAt.timeText)"
+		default: "Start \(length > 0 ? length.timerText : "")"
+		}
+
+		return Button {
+			let steps = mode == .sequence ? expandedSteps : nil
+			let length = startDuration()
+			store.start(duration: length, label: label, notes: notes, category: category, colorName: colorName, soundName: sound.rawValue, steps: steps)
+			label = ""
+			notes = ""
+		} label: {
+			HStack(spacing: 8) {
+				Label(title, systemImage: "play.fill")
+				#if os(macOS)
+				if isSelected {
+					Text("↩")
+						.font(.caption.weight(.semibold))
+						.opacity(0.6)
+				}
+				#endif
+			}
+			.font(.headline)
+			.frame(maxWidth: .infinity)
+			.padding(.vertical, 6)
+		}
+		.glassProminentButton()
+		.tint(tint)
+		.disabled(length == 0)
+		.keyboardShortcut(isSelected ? .defaultAction : nil)
+		.sensoryFeedback(.start, trigger: store.timers.count) { old, new in new > old }
 	}
 
 	private func suggestions(tint: Color) -> some View {
@@ -283,42 +488,45 @@ struct TimersView: View {
 		seconds = total % 60
 	}
 
-	// MARK: Quick start
+	/// Seconds from `now` until the next time the clock reads `time`'s hour and minute.
+	private static func interval(until time: Date, from now: Date) -> TimeInterval {
+		let calendar = Calendar.current
+		let parts = calendar.dateComponents([.hour, .minute], from: time)
+		guard let next = calendar.nextDate(after: now, matching: parts, matchingPolicy: .nextTime) else { return 0 }
+		return next.timeIntervalSince(now).rounded()
+	}
 
-	private var quickStart: some View {
+	/// An hour from now, on the next five minutes.
+	private static func defaultEndTime() -> Date {
+		let inAnHour = Date().addingTimeInterval(3600)
+		let minute = Calendar.current.component(.minute, from: inAnHour)
+		return Calendar.current.date(byAdding: .minute, value: (5 - minute % 5) % 5, to: inAnHour) ?? inAnHour
+	}
+
+	// MARK: Saved and quick start
+
+	private func presetRow(title: String, presets: [TimerPreset], isSavedRow: Bool) -> some View {
 		VStack(alignment: .leading, spacing: 10) {
-			Text("Quick Start")
+			Label(title, systemImage: isSavedRow ? "bookmark.fill" : "bolt.fill")
 				.font(.headline)
 				.padding(.leading, 4)
 
 			ScrollView(.horizontal) {
 				GlassGroup(spacing: 8) {
 					HStack(spacing: 8) {
-						ForEach(store.quickStarts) { preset in
-							Button {
-								store.start(duration: preset.duration, label: preset.label, category: preset.kind, colorName: preset.colorName)
-							} label: {
-								HStack(spacing: 10) {
-									if preset.kind != .general {
-										Image(systemName: preset.kind.symbol)
-											.font(.body.weight(.semibold))
-											.foregroundStyle(ClockItPalette.color(named: preset.colorName))
-									}
-									VStack(alignment: .leading, spacing: 2) {
-										Text(preset.duration.durationLabel)
-											.font(.subheadline.weight(.semibold))
-										if !preset.label.isEmpty {
-											Text(preset.label)
-												.font(.caption)
-												.foregroundStyle(.secondary)
+						ForEach(presets) { preset in
+							presetChip(preset)
+								.contextMenu {
+									if isSavedRow {
+										Button("Remove from Saved", systemImage: "bookmark.slash", role: .destructive) {
+											store.unsave(preset)
+										}
+									} else {
+										Button("Save", systemImage: "bookmark") {
+											store.save(preset)
 										}
 									}
 								}
-								.padding(.horizontal, 16)
-								.padding(.vertical, 12)
-							}
-							.buttonStyle(.plain)
-							.softGlass(.regular.tint(ClockItPalette.color(named: preset.colorName).opacity(0.25)).interactive(), in: .capsule)
 						}
 					}
 					.padding(.horizontal, 4)
@@ -326,6 +534,48 @@ struct TimersView: View {
 			}
 			.scrollIndicators(.hidden)
 		}
+	}
+
+	private func presetChip(_ preset: TimerPreset) -> some View {
+		let number = numberedPresets.firstIndex { $0.id == preset.id }.map { $0 + 1 }
+		let color = ClockItPalette.color(named: preset.colorName)
+
+		return Button {
+			store.start(preset)
+		} label: {
+			HStack(spacing: 10) {
+				if preset.isSequence {
+					Image(systemName: "list.bullet")
+						.font(.body.weight(.semibold))
+						.foregroundStyle(color)
+				} else if preset.kind != .general {
+					Image(systemName: preset.kind.symbol)
+						.font(.body.weight(.semibold))
+						.foregroundStyle(color)
+				}
+				VStack(alignment: .leading, spacing: 2) {
+					Text(preset.duration.durationLabel)
+						.font(.subheadline.weight(.semibold))
+					if !preset.label.isEmpty {
+						Text(preset.label)
+							.font(.caption)
+							.foregroundStyle(.secondary)
+					}
+				}
+				#if os(macOS)
+				if let number, isSelected {
+					Text("⌘\(number)")
+						.font(.caption2.weight(.medium))
+						.foregroundStyle(.secondary)
+				}
+				#endif
+			}
+			.padding(.horizontal, 16)
+			.padding(.vertical, 12)
+		}
+		.buttonStyle(.plain)
+		.softGlass(.regular.tint(color.opacity(0.25)).interactive(), in: .capsule)
+		.keyboardShortcut(isSelected ? number.map { KeyboardShortcut(KeyEquivalent(Character("\($0)")), modifiers: .command) } : nil)
 	}
 }
 
