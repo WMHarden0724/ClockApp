@@ -11,6 +11,7 @@ struct WorldClockCity: Identifiable, Codable, Hashable {
 	let id: UUID
 	var name: String
 	var timeZoneIdentifier: String
+	/// Someone who lives here ("Mom"), shown in place of the city name.
 	var nickname: String?
 	var order: Int
 
@@ -19,8 +20,13 @@ struct WorldClockCity: Identifiable, Codable, Hashable {
 	}
 
 	var displayName: String {
-		if let nickname, !nickname.isEmpty { return nickname }
-		return name
+		person ?? name
+	}
+
+	/// The person this clock is for, if it's labeled with one.
+	var person: String? {
+		guard let nickname, !nickname.isEmpty else { return nil }
+		return nickname
 	}
 
 	func timeText(at date: Date) -> String {

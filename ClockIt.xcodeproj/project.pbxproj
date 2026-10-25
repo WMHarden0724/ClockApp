@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		2B8919AB308D4799003A325F /* ClockItWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2B8919A0308D4799003A325F /* ClockItWidgetsExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2B8919C9308D4799003A325F /* ClockItWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 2B8919C0308D4799003A325F /* ClockItWatch.app */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2B8919D1308D4799003A325F /* ClockItWatchWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2B8919D0308D4799003A325F /* ClockItWatchWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -40,6 +41,13 @@
 			remoteGlobalIDString = 2B8919C2308D4799003A325F;
 			remoteInfo = ClockItWatch;
 		};
+		2B8919D3308D4799003A325F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2B891919308D4796003A325F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2B8919D4308D4799003A325F;
+			remoteInfo = ClockItWatchWidgetsExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -61,6 +69,15 @@
 			);
 			name = "Embed Watch Content";
 		};
+		2B8919D2308D4799003A325F /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "";
+			dstSubfolder = PlugIns;
+			files = (
+				2B8919D1308D4799003A325F /* ClockItWatchWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -69,6 +86,7 @@
 		2B89193C308D4799003A325F /* ClockItUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClockItUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2B8919A0308D4799003A325F /* ClockItWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ClockItWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2B8919C0308D4799003A325F /* ClockItWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClockItWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2B8919D0308D4799003A325F /* ClockItWatchWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ClockItWatchWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -85,6 +103,13 @@
 				Info.plist,
 			);
 			target = 2B8919A4308D4799003A325F /* ClockItWidgetsExtension */;
+		};
+		2B8919DE308D4799003A325F /* Exceptions for "ClockItWatchWidgets" folder in "ClockItWatchWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 2B8919D4308D4799003A325F /* ClockItWatchWidgetsExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -130,6 +155,19 @@
 			path = ClockItWatch;
 			sourceTree = "<group>";
 		};
+		2B8919DC308D4799003A325F /* ClockItWatchWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				2B8919DE308D4799003A325F /* Exceptions for "ClockItWatchWidgets" folder in "ClockItWatchWidgetsExtension" target */,
+			);
+			path = ClockItWatchWidgets;
+			sourceTree = "<group>";
+		};
+		2B8919DD308D4799003A325F /* SharedWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SharedWidgets;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -158,6 +196,11 @@
 			files = (
 			);
 		};
+		2B8919D7308D4799003A325F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -171,6 +214,8 @@
 				2B8919A1308D4799003A325F /* ClockItWidgets */,
 				2B89193F308D4799003A325F /* ClockItUITests */,
 				2B8919C1308D4799003A325F /* ClockItWatch */,
+				2B8919DC308D4799003A325F /* ClockItWatchWidgets */,
+				2B8919DD308D4799003A325F /* SharedWidgets */,
 				2B891922308D4796003A325F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -183,6 +228,7 @@
 				2B89193C308D4799003A325F /* ClockItUITests.xctest */,
 				2B8919A0308D4799003A325F /* ClockItWidgetsExtension.appex */,
 				2B8919C0308D4799003A325F /* ClockItWatch.app */,
+				2B8919D0308D4799003A325F /* ClockItWatchWidgetsExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -271,6 +317,7 @@
 			fileSystemSynchronizedGroups = (
 				2B8919A1308D4799003A325F /* ClockItWidgets */,
 				2B8919A2308D4799003A325F /* Shared */,
+				2B8919DD308D4799003A325F /* SharedWidgets */,
 			);
 			name = ClockItWidgetsExtension;
 			productName = ClockItWidgetsExtension;
@@ -284,8 +331,12 @@
 				2B8919C3308D4799003A325F /* Sources */,
 				2B8919C4308D4799003A325F /* Frameworks */,
 				2B8919C5308D4799003A325F /* Resources */,
+				2B8919D2308D4799003A325F /* Embed Foundation Extensions */,
 			);
 			buildRules = (
+			);
+			dependencies = (
+				2B8919D5308D4799003A325F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				2B8919A2308D4799003A325F /* Shared */,
@@ -296,6 +347,26 @@
 			productName = ClockItWatch;
 			productReference = 2B8919C0308D4799003A325F /* ClockItWatch.app */;
 			productType = "com.apple.product-type.application";
+		};
+		2B8919D4308D4799003A325F /* ClockItWatchWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2B8919D9308D4799003A325F /* Build configuration list for PBXNativeTarget "ClockItWatchWidgetsExtension" */;
+			buildPhases = (
+				2B8919D6308D4799003A325F /* Sources */,
+				2B8919D7308D4799003A325F /* Frameworks */,
+				2B8919D8308D4799003A325F /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				2B8919A2308D4799003A325F /* Shared */,
+				2B8919DC308D4799003A325F /* ClockItWatchWidgets */,
+				2B8919DD308D4799003A325F /* SharedWidgets */,
+			);
+			name = ClockItWatchWidgetsExtension;
+			productName = ClockItWatchWidgetsExtension;
+			productReference = 2B8919D0308D4799003A325F /* ClockItWatchWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -324,6 +395,9 @@
 					2B8919C2308D4799003A325F = {
 						CreatedOnToolsVersion = 27.0;
 					};
+					2B8919D4308D4799003A325F = {
+						CreatedOnToolsVersion = 27.0;
+					};
 				};
 			};
 			buildConfigurationList = 2B89191C308D4796003A325F /* Build configuration list for PBXProject "ClockIt" */;
@@ -345,6 +419,7 @@
 				2B89193B308D4799003A325F /* ClockItUITests */,
 				2B8919A4308D4799003A325F /* ClockItWidgetsExtension */,
 				2B8919C2308D4799003A325F /* ClockItWatch */,
+				2B8919D4308D4799003A325F /* ClockItWatchWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -371,6 +446,11 @@
 			);
 		};
 		2B8919C5308D4799003A325F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		2B8919D8308D4799003A325F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -403,6 +483,11 @@
 			files = (
 			);
 		};
+		2B8919D6308D4799003A325F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -427,6 +512,11 @@
 			platformFilter = ios;
 			target = 2B8919C2308D4799003A325F /* ClockItWatch */;
 			targetProxy = 2B8919CB308D4799003A325F /* PBXContainerItemProxy */;
+		};
+		2B8919D5308D4799003A325F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2B8919D4308D4799003A325F /* ClockItWatchWidgetsExtension */;
+			targetProxy = 2B8919D3308D4799003A325F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -830,6 +920,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ClockItWatch/ClockItWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5A872P44VR;
@@ -862,6 +953,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ClockItWatch/ClockItWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5A872P44VR;
@@ -880,6 +972,73 @@
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		2B8919DA308D4799003A325F /* Debug configuration for PBXNativeTarget "ClockItWatchWidgetsExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ClockItWatchWidgets/ClockItWatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5A872P44VR;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ClockItWatchWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ClockItWatchWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.southerncode.ClockIt.watchkitapp.ClockItWatchWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "WIDGET_EXTENSION $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		2B8919DB308D4799003A325F /* Release configuration for PBXNativeTarget "ClockItWatchWidgetsExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ClockItWatchWidgets/ClockItWatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5A872P44VR;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ClockItWatchWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ClockItWatchWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.southerncode.ClockIt.watchkitapp.ClockItWatchWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "WIDGET_EXTENSION $(inherited)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -939,6 +1098,14 @@
 			buildConfigurations = (
 				2B8919C7308D4799003A325F /* Debug configuration for PBXNativeTarget "ClockItWatch" */,
 				2B8919C8308D4799003A325F /* Release configuration for PBXNativeTarget "ClockItWatch" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		2B8919D9308D4799003A325F /* Build configuration list for PBXNativeTarget "ClockItWatchWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2B8919DA308D4799003A325F /* Debug configuration for PBXNativeTarget "ClockItWatchWidgetsExtension" */,
+				2B8919DB308D4799003A325F /* Release configuration for PBXNativeTarget "ClockItWatchWidgetsExtension" */,
 			);
 			defaultConfigurationName = Release;
 		};

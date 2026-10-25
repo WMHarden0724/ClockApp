@@ -42,6 +42,8 @@ struct ClockItApp: App {
 			if phase == .active {
 				SyncHub.shared.refresh()
 				store.reconcileFiredAlarms()
+				// Rolls the bedtime and daylight saving notifications and the widgets forward.
+				store.refreshReminders()
 			}
 		}
 

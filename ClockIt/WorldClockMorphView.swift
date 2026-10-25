@@ -16,6 +16,7 @@ struct WorldClockMorphView: View {
 	/// Minute-resolution time for the cards.
 	let date: Date
 	let offsetMinutes: Double
+	var onLabel: (WorldClockCity) -> Void = { _ in }
 	var onRemove: (WorldClockCity) -> Void = { _ in }
 
 	@State private var scroll = ScrollMetrics()
@@ -33,7 +34,7 @@ struct WorldClockMorphView: View {
 					ForEach(cities) { city in
 						WorldClockRow(city: city, date: date)
 							.onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.space)) } action: { rowFrames[city.id] = $0 }
-							.contextMenu { removeButton(for: city) }
+							.contextMenu { cityMenu(for: city) }
 					}
 				}
 				.padding(.horizontal, 20)
@@ -97,7 +98,7 @@ struct WorldClockMorphView: View {
 							to: slots[index],
 							progress: staggered(progress, index: index)
 						)
-						.contextMenu { removeButton(for: city) }
+						.contextMenu { cityMenu(for: city) }
 					}
 				}
 			}
@@ -129,7 +130,11 @@ struct WorldClockMorphView: View {
 		}
 	}
 
-	private func removeButton(for city: WorldClockCity) -> some View {
+	@ViewBuilder
+	private func cityMenu(for city: WorldClockCity) -> some View {
+		Button(city.person == nil ? "Label with a Person…" : "Change Person…", systemImage: "person.crop.circle") {
+			onLabel(city)
+		}
 		Button("Remove \(city.displayName)", systemImage: "trash", role: .destructive) {
 			onRemove(city)
 		}

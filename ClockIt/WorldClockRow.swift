@@ -25,13 +25,20 @@ struct WorldClockRow: View {
 
 		VStack(alignment: .leading, spacing: 14) {
 			HStack(alignment: .firstTextBaseline) {
-				VStack(alignment: .leading, spacing: 4) {
-					Text(city.displayName)
-						.font(.title3.weight(.semibold))
+				HStack(spacing: 10) {
+					if let person = city.person {
+						PersonAvatar(name: person, size: 36)
+					}
 
-					Text("\(city.relativeDayText(at: date)) · \(city.hourOffsetText(at: date))")
-						.font(.subheadline)
-						.opacity(0.75)
+					VStack(alignment: .leading, spacing: 4) {
+						Text(city.displayName)
+							.font(.title3.weight(.semibold))
+
+						// A person's clock names their city too.
+						Text([city.person == nil ? nil : city.name, city.relativeDayText(at: date), city.hourOffsetText(at: date)].compactMap { $0 }.joined(separator: " · "))
+							.font(.subheadline)
+							.opacity(0.75)
+					}
 				}
 
 				Spacer()
@@ -43,6 +50,11 @@ struct WorldClockRow: View {
 			}
 
 			DayTrack(hour: hour, moonPhase: moonPhase, ink: ink)
+
+			if let change = ClockChange.next(for: city, from: date) {
+				ClockChangeNotice(change: change, city: city, date: date)
+					.transition(.opacity)
+			}
 
 			if isNight {
 				Text(MoonPhase.name(for: moonPhase))
@@ -68,6 +80,26 @@ struct WorldClockRow: View {
 		.animation(.smooth, value: date)
 		.animation(.smooth(duration: 0.8), value: isNight)
 		.accessibilityElement(children: .combine)
+	}
+}
+
+
+/// "Clocks in London go back on Sunday · Mom will be 4h ahead", for the week before.
+private struct ClockChangeNotice: View {
+	let change: ClockChange
+	let city: WorldClockCity
+	let date: Date
+
+	var body: some View {
+		Label {
+			Text("\(change.headline(cityName: city.name, from: date)) · \(change.consequence(name: city.displayName))")
+		} icon: {
+			Image(systemName: "clock.arrow.2.circlepath")
+		}
+		.font(.caption.weight(.medium))
+		.padding(.horizontal, 10)
+		.padding(.vertical, 6)
+		.background(.white.opacity(0.18), in: .capsule)
 	}
 }
 

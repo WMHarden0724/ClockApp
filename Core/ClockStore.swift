@@ -356,6 +356,14 @@ final class ClockStore {
 		persist()
 	}
 
+	/// Labels a city with someone who lives there, or clears it with nil.
+	func setPerson(_ person: String?, forCity id: UUID) {
+		guard let index = cities.firstIndex(where: { $0.id == id }) else { return }
+		let trimmed = person?.trimmingCharacters(in: .whitespacesAndNewlines)
+		cities[index].nickname = (trimmed?.isEmpty ?? true) ? nil : trimmed
+		persist()
+	}
+
 	func moveCities(from source: IndexSet, to destination: Int) {
 		cities.move(fromOffsets: source, toOffset: destination)
 		renumberCities()
@@ -417,10 +425,35 @@ final class ClockStore {
 		})
 		#if os(iOS)
 		BedtimeReminder.update(nextAlarm: nextAlarm?.date)
+		DaylightSavingAlerts.update(cities: cities)
 		#endif
 		#if !os(watchOS)
 		ClockItShortcutsUpdater.update()
 		#endif
+		shareWithWidgets()
+	}
+
+	/// The next few rings and the cities, for the Home Screen widgets and Watch complications.
+	private func shareWithWidgets() {
+		var upcoming: [WidgetSnapshot.Alarm] = []
+		for alarm in alarms where isActive(alarm) {
+			var after = Date()
+			// Enough rings that the widget moves on by itself after each one.
+			for _ in 0..<(alarm.isOneTime ? 1 : 3) {
+				guard let date = alarm.nextFireDate(after: after, notBefore: activePause) else { break }
+				upcoming.append(WidgetSnapshot.Alarm(id: "\(alarm.id)-\(date.timeIntervalSince1970)", label: alarm.displayLabel, date: date))
+				after = date.addingTimeInterval(1)
+			}
+		}
+		let cities = cities.map { WidgetSnapshot.City(id: $0.id, name: $0.name, person: $0.person, timeZoneIdentifier: $0.timeZoneIdentifier) }
+		let uses24Hour = AppSettings.shared.uses24Hour
+		let pausedUntil = activePause
+		WidgetShelf.update { snapshot in
+			snapshot.alarms = Array(upcoming.sorted { $0.date < $1.date }.prefix(12))
+			snapshot.alarmsPausedUntil = pausedUntil
+			snapshot.cities = cities
+			snapshot.uses24Hour = uses24Hour
+		}
 	}
 
 	// MARK: Sync

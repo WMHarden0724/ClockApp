@@ -553,6 +553,14 @@ final class TimerStore {
 		#endif
 	}
 
+	/// Running and paused timers, for the Home Screen widgets and Watch complications.
+	private func shareWithWidgets() {
+		let shared = timers.map {
+			WidgetSnapshot.Timer(id: $0.id, label: $0.displayLabel, colorName: $0.colorName, symbol: $0.kind.symbol, duration: $0.duration, remaining: $0.remaining, endDate: $0.endDate)
+		}
+		WidgetShelf.update { $0.timers = shared }
+	}
+
 	private func writeToDisk() {
 		do {
 			try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -561,6 +569,7 @@ final class TimerStore {
 		} catch {
 			print("Failed to save ClockIt timers: \(error)")
 		}
+		if live { shareWithWidgets() }
 		#if os(iOS) || os(macOS)
 		if live { TimerNotifications.update(for: timers) }
 		#endif

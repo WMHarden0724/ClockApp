@@ -71,7 +71,7 @@ struct SettingsView: View {
 						switch section {
 						case .general: timeFormatCard
 						case .alarms: alarmsCard
-						case .worldClock: myCityCard
+						case .worldClock: worldClockCard
 						case .stopwatch: stopwatchCard
 						case .timers: timerStyleCard
 						}
@@ -194,6 +194,32 @@ struct SettingsView: View {
 		.tint(Theme.accent)
 		.glassCard()
 	}
+
+	private var worldClockCard: some View {
+		VStack(spacing: 16) {
+			myCityCard
+			#if os(iOS)
+			daylightSavingCard
+			#endif
+		}
+	}
+
+	#if os(iOS)
+	private var daylightSavingCard: some View {
+		VStack(alignment: .leading, spacing: 12) {
+			Toggle(isOn: $settings.daylightSavingAlerts) {
+				Label("Daylight Saving Alerts", systemImage: "clock.arrow.2.circlepath")
+			}
+			.tint(Theme.accent)
+			.onChange(of: settings.daylightSavingAlerts) { store.refreshReminders() }
+
+			Text("A heads-up three days before your clocks or a World Clock city's change, with what the time difference becomes.")
+				.font(.footnote)
+				.foregroundStyle(.secondary)
+		}
+		.glassCard()
+	}
+	#endif
 
 	private var myCityCard: some View {
 		VStack(alignment: .leading, spacing: 12) {

@@ -15,6 +15,9 @@ import WidgetKit
 @main
 struct ClockItWidgetsBundle: WidgetBundle {
 	var body: some Widget {
+		NextAlarmWidget()
+		TimersWidget()
+		WorldClockWidget()
 		StopwatchLiveActivity()
 		if #available(iOS 26, *) {
 			AlarmLiveActivity()

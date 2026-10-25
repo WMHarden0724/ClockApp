@@ -84,6 +84,7 @@ final class AppSettings {
 	private static let soundsKey = "timerSoundsByCategory"
 	private static let sleepGoalKey = "sleepGoalMinutes"
 	private static let bedtimeReminderKey = "bedtimeReminder"
+	private static let daylightSavingKey = "daylightSavingAlerts"
 	private static let welcomeKey = "hasSeenWelcome"
 	private static let dialStyleKey = "stopwatchDialStyle"
 
@@ -139,6 +140,11 @@ final class AppSettings {
 	/// A wind-down notification 15 minutes before bedtime for your next alarm.
 	var bedtimeReminder: Bool {
 		didSet { UserDefaults.standard.set(bedtimeReminder, forKey: Self.bedtimeReminderKey) }
+	}
+
+	/// A heads-up a few days before your clocks or a World Clock city's change.
+	var daylightSavingAlerts: Bool {
+		didSet { UserDefaults.standard.set(daylightSavingAlerts, forKey: Self.daylightSavingKey) }
 	}
 
 	var timerHeadsUp: TimerHeadsUp {
@@ -205,6 +211,7 @@ final class AppSettings {
 		stopwatchDialStyle = UserDefaults.standard.string(forKey: Self.dialStyleKey).flatMap(StopwatchDialStyle.init) ?? .chronograph
 		sleepGoalMinutes = UserDefaults.standard.object(forKey: Self.sleepGoalKey) as? Int ?? 480
 		bedtimeReminder = UserDefaults.standard.object(forKey: Self.bedtimeReminderKey) as? Bool ?? false
+		daylightSavingAlerts = UserDefaults.standard.object(forKey: Self.daylightSavingKey) as? Bool ?? true
 		timerHeadsUp = UserDefaults.standard.string(forKey: Self.headsUpKey).flatMap(TimerHeadsUp.init) ?? .off
 		showsMenuBarTimer = UserDefaults.standard.object(forKey: Self.menuBarKey) as? Bool ?? true
 		timerSounds = UserDefaults.standard.dictionary(forKey: Self.soundsKey) as? [String: String] ?? [:]

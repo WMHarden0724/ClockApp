@@ -11,6 +11,7 @@ import SwiftUI
 struct WorldClockView: View {
 	@Environment(ClockStore.self) private var store
 	@State private var showingAddCity = false
+	@State private var labeling: WorldClockCity?
 	@State private var offsetMinutes: Double = 0
 
 	var body: some View {
@@ -24,7 +25,7 @@ struct WorldClockView: View {
 						store.deleteCity(id: city.id)
 					}
 					#elseif os(macOS)
-					WorldClockMorphView(cities: store.cities, date: date, offsetMinutes: offsetMinutes) { city in
+					WorldClockMorphView(cities: store.cities, date: date, offsetMinutes: offsetMinutes, onLabel: { labeling = $0 }) { city in
 						store.deleteCity(id: city.id)
 					}
 					#else
@@ -32,6 +33,13 @@ struct WorldClockView: View {
 						ForEach(store.cities) { city in
 							WorldClockRow(city: city, date: date)
 								.glassListRow()
+								.contextMenu {
+									personButton(for: city)
+								}
+								.swipeActions(edge: .leading) {
+									personButton(for: city)
+										.tint(ClockItPalette.accent)
+								}
 						}
 						.onMove(perform: store.moveCities)
 						.onDelete(perform: store.deleteCities)
@@ -82,6 +90,17 @@ struct WorldClockView: View {
 					store.addCity(city)
 				}
 			}
+			.sheet(item: $labeling) { city in
+				PersonLabelView(city: city) { person in
+					store.setPerson(person, forCity: city.id)
+				}
+			}
+		}
+	}
+
+	private func personButton(for city: WorldClockCity) -> some View {
+		Button(city.person == nil ? "Label with a Person" : "Change Person", systemImage: "person.crop.circle") {
+			labeling = city
 		}
 	}
 
